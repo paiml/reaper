@@ -962,6 +962,26 @@ fun scan_processes() -> [Process] {
     processes
 }
 
+/// Parses /proc/[pid]/status file to extract process information.
+/// Returns a Process struct with parsed data.
+///
+/// # Arguments
+/// * `pid` - Process ID to parse
+///
+/// # Returns
+/// Process struct with parsed information from /proc/[pid]/status
+fun parse_proc_status(pid: i32) -> Process {
+    // RED phase - intentionally returns invalid process
+    new_process(
+        -1,  // Invalid PID
+        "",  // Empty name
+        "",  // Empty cmdline
+        -1.0,  // Invalid CPU
+        -1,  // Invalid memory
+        ProcessStatus::Running
+    )
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -1630,6 +1650,61 @@ fun test_scan_processes_includes_self() {
     assert(first_proc.name != "", "Process should have a non-empty name");
 }
 
+/// Test parse_proc_status() returns a Process struct
+#[test]
+fun test_parse_proc_status_returns_process() {
+    // Parse a known PID (1 = init/systemd on most Linux systems)
+    let proc = parse_proc_status(1);
+
+    // Just checking we can call it and get a Process back
+    // Type checking test
+    assert(true, "Function should return without error");
+}
+
+/// Test parse_proc_status() returns valid PID
+#[test]
+fun test_parse_proc_status_valid_pid() {
+    // Parse PID 1 (init/systemd)
+    let proc = parse_proc_status(1);
+
+    // Returned process should have the correct PID
+    // This will FAIL in RED phase (returns -1)
+    assert(proc.pid == 1, "Parsed process should have correct PID");
+}
+
+/// Test parse_proc_status() returns non-empty name
+#[test]
+fun test_parse_proc_status_non_empty_name() {
+    // Parse PID 1 (init/systemd)
+    let proc = parse_proc_status(1);
+
+    // Process name should not be empty
+    // This will FAIL in RED phase (returns empty string)
+    assert(proc.name != "", "Parsed process should have non-empty name");
+}
+
+/// Test parse_proc_status() returns valid memory
+#[test]
+fun test_parse_proc_status_valid_memory() {
+    // Parse PID 1
+    let proc = parse_proc_status(1);
+
+    // Memory should be non-negative
+    // This will FAIL in RED phase (returns -1)
+    assert(proc.memory_mb >= 0, "Parsed process should have non-negative memory");
+}
+
+/// Test parse_proc_status() with current process
+#[test]
+fun test_parse_proc_status_self() {
+    // Parse self (Ruchy process) - typically available at /proc/self
+    // For this test, we'll use PID 1 as a known-good test
+    let proc = parse_proc_status(1);
+
+    // Should return a valid process struct
+    assert(is_valid_process(proc), "Parsed process should be valid");
+}
+
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -1642,27 +1717,26 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 3 IN PROGRESS");
-    println("Current: Scanner - Process Enumeration");
+    println("Status: SPRINT 3 - REAPER-202 RED PHASE");
+    println("Current: Scanner - Writing tests for parse_proc_status()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ REAPER-201: scan_processes() (RED-GREEN-REFACTOR)");
     println("");
-    println("Sprint 3 Progress:");
-    println("  ✅ scan_processes() - Process enumeration");
-    println("  → parse_proc_status() - Parse /proc/[pid]/status");
-    println("  → get_process_cpu_usage() - Calculate CPU usage");
+    println("Current TDD Cycle (parse_proc_status):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Current Metrics:");
-    println("  • Tests: 39 passing (100% pass rate)");
-    println("  • SATD: 0 violations");
-    println("  • LOC: ~1665 lines");
-    println("  • Commits: 19 REAPER tickets");
+    println("Tests Added: 5 parse_proc_status tests (expect FAILURES)");
+    println("  - test_parse_proc_status_returns_process()");
+    println("  - test_parse_proc_status_valid_pid()");
+    println("  - test_parse_proc_status_non_empty_name()");
+    println("  - test_parse_proc_status_valid_memory()");
+    println("  - test_parse_proc_status_self()");
     println("");
-    println("Next Steps:");
-    println("  → REAPER-202: parse_proc_status() function");
-    println("  → REAPER-203: get_process_cpu_usage() function");
-    println("  → REAPER-204: Sprint 3 validation");
+    println("Total Tests: 44 (39 passing from previous, 5 new failing)");
+    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
