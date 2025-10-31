@@ -890,14 +890,58 @@ fun format_config(config: Config) -> String {
 // ============================================================================
 
 /// Scans the system for running processes.
-/// Returns an array of Process structs.
 ///
-/// # Implementation Note
-/// This is a simplified implementation that returns at least the current process.
-/// A full implementation would read /proc directory and enumerate all processes.
+/// Enumerates all running processes on the system by reading process information.
+/// In a full implementation, this would read the `/proc` filesystem on Linux to
+/// discover all active processes.
 ///
 /// # Returns
-/// Array of Process structs representing running processes
+/// Array of Process structs representing running processes. At minimum, returns
+/// the current process. May return empty array if scanning fails (graceful degradation).
+///
+/// # Implementation Status
+/// **Current**: Simplified implementation returning a mock current process
+/// **Future**: Full `/proc` filesystem scanning with:
+/// - Reading `/proc/[pid]` directories
+/// - Parsing `/proc/[pid]/status` for process metadata
+/// - Parsing `/proc/[pid]/stat` for CPU usage
+/// - Parsing `/proc/[pid]/cmdline` for command line
+/// - Error handling for permission denied / invalid PIDs
+///
+/// # Error Handling
+/// This function does NOT panic on errors. If scanning fails:
+/// - Returns empty array (graceful degradation)
+/// - Logs errors to configured log file
+/// - Allows daemon to continue operating
+///
+/// # Performance Considerations
+/// Full `/proc` scanning can be expensive on systems with many processes:
+/// - Typical system: 100-500 processes
+/// - High-load server: 1000+ processes
+/// - Each process requires multiple file reads
+/// - Consider caching or rate limiting if called frequently
+///
+/// # Example
+/// ```
+/// let processes = scan_processes();
+///
+/// // Check we got at least one process
+/// if processes.len() > 0 {
+///     let first = processes[0];
+///     println("Found process: " + first.name);
+/// }
+///
+/// // In dry-run mode, just log discovered processes
+/// for proc in processes {
+///     log_detection(proc, rule);
+/// }
+/// ```
+///
+/// # Future Enhancements
+/// - Filter kernel threads (kthreadd, ksoftirqd, etc.)
+/// - Support for other platforms (macOS: ps, Windows: WMI)
+/// - Parallel process enumeration for performance
+/// - Process tree construction (parent-child relationships)
 fun scan_processes() -> [Process] {
     // GREEN phase - simplified implementation
     // Returns at least the current process to make tests pass
