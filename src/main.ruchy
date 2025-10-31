@@ -4413,6 +4413,155 @@ fun test_load_config_different_paths() {
 }
 
 // ============================================================================
+// ADDITIONAL EDGE CASE TESTS (REAPER-601: Coverage Improvements)
+// ============================================================================
+
+/// Test is_valid_process() rejects PID = 0 (boundary case).
+/// PIDs must be > 0, so 0 should be invalid.
+#[test]
+fun test_process_validation_zero_pid() {
+    let zero_pid_proc = new_process(
+        0,  // Invalid: PID must be > 0
+        "test",
+        "/bin/test",
+        50.0,
+        100,
+        ProcessStatus::Running
+    );
+
+    assert(!is_valid_process(zero_pid_proc), "Process with PID=0 should be invalid");
+}
+
+/// Test is_valid_process() rejects negative CPU usage.
+/// CPU usage must be in range [0.0, 100.0], so negative is invalid.
+#[test]
+fun test_process_validation_negative_cpu() {
+    let negative_cpu_proc = new_process(
+        1234,
+        "test",
+        "/bin/test",
+        -10.0,  // Invalid: CPU must be >= 0.0
+        100,
+        ProcessStatus::Running
+    );
+
+    assert(!is_valid_process(negative_cpu_proc), "Process with negative CPU should be invalid");
+}
+
+/// Test is_valid_rule() rejects negative CPU threshold.
+/// CPU thresholds must be in range [0.0, 100.0].
+#[test]
+fun test_invalid_rule_negative_cpu() {
+    let invalid_rule = new_detection_rule(
+        "Negative CPU",
+        Priority::Medium,
+        -5.0,  // Invalid: CPU threshold must be >= 0.0
+        1024,
+        "",
+        "",
+        true
+    );
+
+    assert(!is_valid_rule(invalid_rule), "Rule with negative CPU threshold should be invalid");
+}
+
+/// Test is_valid_rule() rejects empty name.
+/// Rule names must be non-empty for identification.
+#[test]
+fun test_invalid_rule_empty_name() {
+    let invalid_rule = new_detection_rule(
+        "",  // Invalid: name must be non-empty
+        Priority::Medium,
+        80.0,
+        1024,
+        "",
+        "",
+        true
+    );
+
+    assert(!is_valid_rule(invalid_rule), "Rule with empty name should be invalid");
+}
+
+/// Test is_valid_config() accepts zero grace period.
+/// Grace period of 0 is valid - means immediate SIGKILL.
+#[test]
+fun test_valid_config_zero_grace() {
+    let empty_rules: [DetectionRule] = [];
+    let zero_grace_config = new_config(
+        60,
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        0  // Valid: grace period = 0 means immediate SIGKILL
+    );
+
+    assert(is_valid_config(zero_grace_config), "Config with zero grace period should be valid");
+}
+
+/// Test rule_matches_process() for cmdline pattern matching.
+/// Tests the cmdline_pattern matching logic.
+#[test]
+fun test_rule_matches_cmdline_pattern() {
+    let rule = new_detection_rule(
+        "Java Watcher",
+        Priority::Medium,
+        0.0,
+        0,
+        "",
+        "java",  // Match processes with "java" in cmdline
+        true
+    );
+
+    let java_proc = new_process(
+        1234,
+        "app",
+        "/usr/bin/java -jar app.jar",
+        50.0,
+        512,
+        ProcessStatus::Running
+    );
+
+    assert(rule_matches_process(rule, java_proc), "Rule should match process with 'java' in cmdline");
+
+    let other_proc = new_process(
+        5678,
+        "app",
+        "/usr/bin/python app.py",
+        50.0,
+        512,
+        ProcessStatus::Running
+    );
+
+    assert(!rule_matches_process(rule, other_proc), "Rule should not match process without 'java' in cmdline");
+}
+
+/// Test rule_matches_process() with all thresholds disabled (zeros).
+/// When all thresholds are 0/empty, enabled rule should match everything.
+#[test]
+fun test_rule_matches_all_disabled_thresholds() {
+    let match_all_rule = new_detection_rule(
+        "Match All",
+        Priority::Low,
+        0.0,   // Disabled CPU threshold
+        0,     // Disabled memory threshold
+        "",    // Empty name pattern
+        "",    // Empty cmdline pattern
+        true   // But rule is enabled
+    );
+
+    let any_proc = new_process(
+        1234,
+        "any_process",
+        "/usr/bin/any",
+        25.0,
+        128,
+        ProcessStatus::Running
+    );
+
+    assert(rule_matches_process(match_all_rule, any_proc), "Rule with all thresholds disabled should match any process");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -4424,7 +4573,7 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: 🎉 SPRINT 6 COMPLETE - CLI & Config Implementation");
+    println("Status: 🚀 SPRINT 7 IN PROGRESS - Quality & Testing");
     println("");
     println("Completed Sprints:");
     println("  ✅ Sprint 2: Data structures (5 complete)");
@@ -4433,26 +4582,25 @@ fun main() {
     println("  ✅ Sprint 5: Terminator functions (2 complete)");
     println("  ✅ Sprint 6: CLI & Config (3 complete)");
     println("");
-    println("Sprint 6 Deliverables:");
-    println("  ✅ REAPER-501: parse_args() + default_config()");
-    println("     - ~310 lines documentation");
-    println("     - Default values + rationale");
-    println("     - Future CLI argument parsing");
-    println("  ✅ REAPER-502: daemon_loop()");
-    println("     - ~242 lines documentation");
-    println("     - 4-phase algorithm (SCAN→DETECT→TERMINATE→SLEEP)");
-    println("     - Security & performance analysis");
-    println("  ✅ REAPER-503: load_config()");
-    println("     - ~288 lines documentation");
-    println("     - TOML config file format");
-    println("     - Graceful fallback strategy");
-    println("     - 6 security considerations");
+    println("Sprint 7 Progress:");
+    println("  ⏳ REAPER-601: Achieve 90%+ test coverage");
+    println("     - Added 7 edge case tests");
+    println("     - Coverage improved for validation functions");
+    println("     - Total: 100 test functions");
+    println("  ⏳ REAPER-602: Achieve 80%+ mutation score");
+    println("  ⏳ REAPER-603: Add property-based tests");
+    println("  ⏳ REAPER-604: Achieve A+ quality score (0.95+)");
+    println("  ⏳ REAPER-605: All 15 Ruchy tools validation");
     println("");
     println("Quality Metrics:");
-    println("  ✅ All tests passing (93 tests)");
+    println("  ✅ All tests passing (100 tests, +7 from coverage work)");
     println("  ✅ SATD violations: 0");
-    println("  ✅ LOC: 4,456 (~50% documentation)");
+    println("  ✅ LOC: 4,607 (~50% documentation)");
     println("");
-    println("Next: REAPER-504 Sprint 6 validation or Sprint 7 (Quality)");
+    println("REAPER-601 Edge Cases Added:");
+    println("  • is_valid_process: PID=0, negative CPU");
+    println("  • is_valid_rule: negative CPU, empty name");
+    println("  • is_valid_config: zero grace period (valid)");
+    println("  • rule_matches_process: cmdline pattern, all thresholds=0");
     println("========================================");
 }
