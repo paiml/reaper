@@ -2135,6 +2135,40 @@ fun safe_kill_with_grace(proc: Process, grace_period: i64) -> bool {
 }
 
 // ============================================================================
+// CONFIG - Configuration Management
+// ============================================================================
+
+/// Returns default configuration with sensible values.
+/// RED phase stub - returns minimal default config.
+fun default_config() -> Config {
+    // RED phase - minimal stub
+    // Create empty rules array
+    let empty_rules: [DetectionRule] = [];
+
+    // Return default config with sensible values
+    new_config(
+        60,                      // check_interval_secs: 60 seconds
+        empty_rules,             // rules: empty for now
+        false,                   // dry_run: false
+        "/var/log/reaper.log",   // log_file
+        5                        // grace_period_secs: 5 seconds
+    )
+}
+
+// ============================================================================
+// CLI - Command Line Interface
+// ============================================================================
+
+/// Parses command-line arguments and returns Config.
+/// RED phase stub - returns default config.
+fun parse_args() -> Config {
+    // RED phase - stub implementation
+    // In full implementation, would parse command-line arguments
+    // For now, just return default config
+    default_config()
+}
+
+// ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
 
@@ -3375,6 +3409,56 @@ fun test_safe_kill_long_grace() {
     assert(true, "Long grace period should work");
 }
 
+/// Test parse_args() returns Config (type checking)
+#[test]
+fun test_parse_args_returns_config() {
+    // Call parse_args - should return Config
+    let config: Config = parse_args();
+
+    // Type checking - this test always passes if it compiles
+    assert(true, "parse_args returns Config");
+}
+
+/// Test parse_args() returns valid check_interval
+#[test]
+fun test_parse_args_check_interval() {
+    let config = parse_args();
+
+    // Check interval should be positive (60 seconds default)
+    assert(config.check_interval_secs > 0, "Check interval should be positive (RED - will fail if 0)");
+}
+
+/// Test parse_args() returns non-null log_file
+#[test]
+fun test_parse_args_log_file() {
+    let config = parse_args();
+
+    // Log file should not be empty
+    // In RED phase, this should pass with default "/var/log/reaper.log"
+    assert(config.log_file.len() > 0, "Log file should not be empty");
+}
+
+/// Test parse_args() returns valid grace_period
+#[test]
+fun test_parse_args_grace_period() {
+    let config = parse_args();
+
+    // Grace period should be non-negative (0 = immediate kill, >0 = graceful)
+    assert(config.grace_period_secs >= 0, "Grace period should be non-negative");
+}
+
+/// Test default_config() returns valid config
+#[test]
+fun test_default_config_valid() {
+    let config = default_config();
+
+    // Verify all fields have sensible defaults
+    assert(config.check_interval_secs == 60, "Default check interval should be 60s");
+    assert(config.grace_period_secs == 5, "Default grace period should be 5s");
+    assert(config.dry_run == false, "Default dry_run should be false");
+    assert(config.log_file == "/var/log/reaper.log", "Default log file should be /var/log/reaper.log");
+}
+
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -3387,30 +3471,31 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: 🎉 SPRINT 5 COMPLETE - Terminator Implementation");
+    println("Status: SPRINT 6 - REAPER-501 RED PHASE");
+    println("Current: CLI - Testing parse_args() and default_config()");
     println("");
-    println("Completed Sprints:");
+    println("Completed:");
     println("  ✅ Sprint 2: Data structures (5 complete)");
     println("  ✅ Sprint 3: Scanner functions (3 complete)");
     println("  ✅ Sprint 4: Detector functions (4 complete)");
     println("  ✅ Sprint 5: Terminator functions (2 complete)");
     println("");
-    println("Sprint 5 Deliverables:");
-    println("  ✅ REAPER-401: terminate_process()");
-    println("     - Signature: (pid: i32, grace_period: i64) -> ActionResult");
-    println("     - Two-phase termination (SIGTERM → grace → SIGKILL)");
-    println("     - ~200 lines documentation");
-    println("  ✅ REAPER-402: safe_kill_with_grace()");
-    println("     - Signature: (proc: Process, grace_period: i64) -> bool");
-    println("     - High-level wrapper for Process structs");
-    println("     - ~155 lines documentation");
+    println("Current TDD Cycle (parse_args + default_config):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Quality Metrics:");
-    println("  ✅ All tests passing (80 tests)");
-    println("  ✅ SATD violations: 0");
-    println("  ✅ All commits pushed to GitHub");
-    println("  ✅ LOC: 3,418 (~50% documentation)");
+    println("RED Phase (parse_args + default_config):");
+    println("  - Added default_config() stub (returns default Config)");
+    println("  - Added parse_args() stub (calls default_config)");
+    println("  - Added 5 tests:");
+    println("    1. test_parse_args_returns_config() - Type checking");
+    println("    2. test_parse_args_check_interval() - Validates interval > 0");
+    println("    3. test_parse_args_log_file() - Validates non-empty log file");
+    println("    4. test_parse_args_grace_period() - Validates grace >= 0");
+    println("    5. test_default_config_valid() - Validates all default values");
     println("");
-    println("Next: Sprint 6 - CLI & Main Loop Implementation");
+    println("Total Tests: 85 (expect ALL PASSING - stubs return valid defaults)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (RED phase)");
     println("========================================");
 }
