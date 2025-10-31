@@ -1584,14 +1584,138 @@ fun detect_memory_hog(proc: Process, rule: DetectionRule) -> bool {
 /// Checks if a process name matches a given pattern.
 /// Returns true if pattern matches process name (case-insensitive substring).
 ///
+/// This is a utility function used by rule_matches_process() for name-based
+/// filtering. It implements simple substring matching with case-insensitivity,
+/// making it easy to match process names without exact knowledge of casing.
+///
 /// # Arguments
 /// * `proc` - Process to check
 /// * `pattern` - String pattern to match (empty = match all)
 ///
 /// # Returns
 /// true if pattern matches proc.name (case-insensitive substring match)
+///
+/// # Algorithm
+///
+/// Three-step process:
+/// 1. Check if pattern is empty → return true (wildcard match)
+/// 2. Convert both name and pattern to lowercase
+/// 3. Check if pattern is substring of name using contains()
+///
+/// The conversion to lowercase ensures case-insensitive matching without
+/// requiring users to know the exact casing of process names.
+///
+/// # Matching Semantics
+///
+/// - **Empty pattern**: Always returns true (matches all processes)
+/// - **Substring match**: Pattern can appear anywhere in name
+/// - **Case-insensitive**: "chrome" matches "Chrome", "CHROME", "ChRoMe"
+/// - **Exact match**: Pattern "vim" matches name "vim"
+/// - **Partial match**: Pattern "fire" matches name "firefox-bin"
+/// - **No wildcards**: Plain substring matching, no regex or glob patterns
+///
+/// # Edge Cases
+///
+/// 1. **Empty pattern**: Returns true (wildcard, matches everything)
+/// 2. **Empty name**: Only matches if pattern is also empty
+/// 3. **Pattern longer than name**: Returns false (cannot be substring)
+/// 4. **Special characters**: Treated literally, no escaping needed
+/// 5. **Unicode**: Handled by Rust's String (UTF-8 safe)
+/// 6. **Whitespace**: Treated as part of pattern (matches literally)
+///
+/// # Performance Characteristics
+///
+/// - **Time Complexity**: O(n * m) where:
+///   * n = length of process name
+///   * m = length of pattern
+///   * Best case: O(1) if pattern is empty
+///   * Worst case: O(n * m) for substring search
+///
+/// - **Space Complexity**: O(n + m) for lowercase conversions
+///   * Two string allocations (name_lower, pattern_lower)
+///   * Temporary allocations, not retained
+///
+/// - **Optimization**: Empty pattern check short-circuits (O(1))
+///
+/// # Examples
+///
+/// ```ruchy
+/// // Example 1: Exact match
+/// let proc = new_process(100, "chrome", "/usr/bin/chrome", 10.0, 512, Running);
+/// let matches = match_name_pattern(proc, "chrome");
+/// // Result: true (exact match)
+/// ```
+///
+/// ```ruchy
+/// // Example 2: Partial match (substring)
+/// let proc = new_process(100, "firefox-bin", "/usr/bin/firefox-bin", 10.0, 512, Running);
+/// let matches = match_name_pattern(proc, "firefox");
+/// // Result: true ("firefox" is substring of "firefox-bin")
+/// ```
+///
+/// ```ruchy
+/// // Example 3: Case-insensitive match
+/// let proc = new_process(100, "Chrome", "/usr/bin/Chrome", 10.0, 512, Running);
+/// let matches = match_name_pattern(proc, "chrome");
+/// // Result: true (case-insensitive)
+/// ```
+///
+/// ```ruchy
+/// // Example 4: Empty pattern (wildcard)
+/// let proc = new_process(100, "anything", "/usr/bin/anything", 10.0, 512, Running);
+/// let matches = match_name_pattern(proc, "");
+/// // Result: true (empty pattern matches all)
+/// ```
+///
+/// ```ruchy
+/// // Example 5: No match
+/// let proc = new_process(100, "vim", "/usr/bin/vim", 10.0, 512, Running);
+/// let matches = match_name_pattern(proc, "emacs");
+/// // Result: false ("emacs" not in "vim")
+/// ```
+///
+/// # Usage in Reaper
+///
+/// This function is called by rule_matches_process() for name-based filtering:
+/// 1. **Within rule_matches_process()**: AND-combined with other checks
+/// 2. **Direct usage**: Custom filtering or debugging
+/// 3. **Daemon loop**: Part of scan → detect → terminate cycle
+///
+/// Typical use case: Target specific applications by name pattern.
+/// Example: Match all browser processes with pattern "chrom" to catch
+/// "chrome", "chromium", "chrome-sandbox", etc.
+///
+/// # Design Rationale
+///
+/// - **Substring matching**: More flexible than exact match
+/// - **Case-insensitive**: Robust to naming variations across systems
+/// - **Empty = wildcard**: Simple way to disable name filtering
+/// - **No regex**: Keeps implementation simple and fast
+/// - **Separate function**: Reusable, testable, single responsibility
+///
+/// # Future Enhancements
+///
+/// When Ruchy adds more features, consider:
+/// 1. **Regex support**: Full regular expression matching
+/// 2. **Glob patterns**: Shell-style wildcards (* and ?)
+/// 3. **Multiple patterns**: OR logic across pattern list
+/// 4. **Prefix/suffix matching**: Optimize for common cases
+/// 5. **Pattern caching**: Compile patterns once, reuse
+/// 6. **Command-line matching**: Extend to match full cmdline
+/// 7. **Process tree matching**: Match parent process names
+///
+/// # Testing
+///
+/// Covered by 5 unit tests:
+/// - test_match_name_pattern_empty() - Empty pattern matches all
+/// - test_match_name_pattern_exact() - Exact name match
+/// - test_match_name_pattern_partial() - Substring match
+/// - test_match_name_pattern_case_insensitive() - Case-insensitive match
+/// - test_match_name_pattern_no_match() - Pattern doesn't match
+///
+/// Additional testing via rule_matches_process() integration tests.
 fun match_name_pattern(proc: Process, pattern: String) -> bool {
-    // GREEN phase - implement pattern matching
+    // REFACTOR phase - implementation unchanged, documentation added
 
     // Empty pattern matches all processes
     if pattern.len() == 0 {
@@ -2727,8 +2851,8 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-304 GREEN PHASE");
-    println("Current: Detector - Implementing match_name_pattern() logic");
+    println("Status: SPRINT 4 - REAPER-304 REFACTOR PHASE");
+    println("Current: Detector - Documenting match_name_pattern()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
@@ -2737,18 +2861,22 @@ fun main() {
     println("  ✅ REAPER-302: detect_cpu_hog() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-303: detect_memory_hog() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-304 RED: match_name_pattern() tests (5 tests)");
+    println("  ✅ REAPER-304 GREEN: match_name_pattern() implementation");
     println("");
     println("Current TDD Cycle (match_name_pattern):");
     println("  ✅ RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code quality");
+    println("  ✅ GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("Implementation:");
-    println("  - Empty pattern returns true (match all)");
-    println("  - Convert to lowercase for case-insensitive matching");
-    println("  - Use contains() for substring matching");
+    println("Documentation Added (~130 lines):");
+    println("  - Algorithm: three-step pattern matching (empty check + lowercase + contains)");
+    println("  - Matching semantics (substring, case-insensitive, empty = wildcard)");
+    println("  - 6 edge cases documented");
+    println("  - Performance: O(n*m) time, O(n+m) space for lowercase conversion");
+    println("  - 5 usage examples (exact, partial, case-insensitive, wildcard, no match)");
+    println("  - Design rationale and future enhancements (7 ideas: regex, glob, etc.)");
     println("");
     println("Total Tests: 70 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
     println("========================================");
 }
