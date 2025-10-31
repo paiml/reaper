@@ -747,7 +747,32 @@ fun format_rule(rule: DetectionRule) -> String {
 }
 
 /// Creates a new Config instance with the given values.
-/// Returns a Config with all fields set.
+///
+/// This constructor does NOT validate inputs. Use `is_valid_config()` after
+/// creation to ensure all field values are valid.
+///
+/// # Arguments
+/// * `check_interval` - How often to scan processes (seconds)
+/// * `rules` - Array of DetectionRule instances to apply
+/// * `dry_run` - If true, log only (don't terminate)
+/// * `log_file` - Path to log file
+/// * `grace_period` - Seconds between SIGTERM and SIGKILL
+///
+/// # Returns
+/// A Config instance with all fields set
+///
+/// # Example
+/// ```
+/// let empty_rules: [DetectionRule] = [];
+/// let config = new_config(
+///     60,      // Check every minute
+///     empty_rules,
+///     false,   // Real mode (not dry-run)
+///     "/var/log/reaper.log",
+///     5        // 5 second grace period
+/// );
+/// assert(is_valid_config(config), "Config should be valid");
+/// ```
 fun new_config(check_interval: i64, rules: [DetectionRule], dry_run: bool, log_file: String, grace_period: i64) -> Config {
     Config {
         check_interval_secs: check_interval,
@@ -759,13 +784,47 @@ fun new_config(check_interval: i64, rules: [DetectionRule], dry_run: bool, log_f
 }
 
 /// Validates that a Config has valid field values.
-/// Returns true if config is valid, false otherwise.
+///
+/// Checks that all configuration fields contain valid values according to
+/// the Config specification. This should be called after construction or
+/// modification to ensure configuration integrity.
+///
+/// # Arguments
+/// * `config` - The Config to validate
+///
+/// # Returns
+/// * `true` if all validations pass
+/// * `false` if any validation fails
 ///
 /// # Validation Rules
-/// - check_interval_secs must be > 0 (typically 10-300)
-/// - log_file must be non-empty
-/// - grace_period_secs must be >= 0 (0 = immediate SIGKILL)
-/// - rules array can be empty (no validation on array itself)
+/// * **Check interval**: Must be > 0 seconds
+///   - Typical range: 10-300 seconds
+///   - Too short (< 10) wastes CPU, too long (> 300) misses rogue processes
+/// * **Log file**: Must be non-empty
+///   - Empty path would make logging impossible
+///   - Path validity not checked (filesystem-dependent)
+/// * **Grace period**: Must be >= 0 seconds
+///   - 0 means send SIGKILL immediately (no grace)
+///   - Typical range: 3-10 seconds
+/// * **Rules array**: No validation
+///   - Empty array is valid (no detections will occur)
+///   - Individual rules should be validated separately
+///
+/// # Example
+/// ```
+/// // Valid config
+/// let empty_rules: [DetectionRule] = [];
+/// let valid = new_config(60, empty_rules, false, "/var/log/reaper.log", 5);
+/// assert(is_valid_config(valid));
+///
+/// // Invalid config (zero interval)
+/// let invalid = new_config(0, empty_rules, false, "/var/log/reaper.log", 5);
+/// assert(!is_valid_config(invalid));
+///
+/// // Valid config with zero grace period (immediate SIGKILL)
+/// let immediate = new_config(60, empty_rules, false, "/var/log/reaper.log", 0);
+/// assert(is_valid_config(immediate));
+/// ```
 fun is_valid_config(config: Config) -> bool {
     // Check interval must be positive
     if config.check_interval_secs <= 0 {
@@ -785,11 +844,32 @@ fun is_valid_config(config: Config) -> bool {
     true
 }
 
-/// Formats a Config as a human-readable string.
-/// Returns a formatted string representation.
+/// Formats a Config as a human-readable string for display.
 ///
-/// # Format
-/// Returns a string like: "Config[interval=60s, rules=0, dry_run=false, log=/var/log/reaper.log, grace=5s]"
+/// Creates a compact string representation suitable for logging and UI display.
+/// Includes all configuration fields in a standardized format.
+///
+/// # Arguments
+/// * `config` - The Config to format
+///
+/// # Returns
+/// A formatted string with the structure:
+/// `"Config[interval=<secs>, rules=<count>, dry_run=<bool>, log=<path>, grace=<secs>]"`
+///
+/// # Format Details
+/// * All fields are included
+/// * Times shown with 's' suffix (seconds)
+/// * Dry-run shown as "true" or "false"
+/// * Log path shown verbatim
+///
+/// # Example
+/// ```
+/// let empty_rules: [DetectionRule] = [];
+/// let config = new_config(60, empty_rules, false, "/var/log/reaper.log", 5);
+/// let output = format_config(config);
+/// // output == "Config[interval=secs, rules=count, dry_run=false, log=/var/log/reaper.log, grace=secs]"
+/// // Note: Numeric values simplified due to lack of i64->String conversion
+/// ```
 fun format_config(config: Config) -> String {
     let mut result = "Config[interval=";
     result = result + "secs";  // Simplified - would need i64->String conversion
