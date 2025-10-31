@@ -1320,14 +1320,125 @@ fun apply_rules(procs: [Process], rules: [DetectionRule]) -> [Process] {
 /// Checks if a process is a CPU hog based on detection rule.
 /// Returns true if process CPU usage exceeds rule threshold.
 ///
+/// This is a utility function used by rule_matches_process() and potentially
+/// as a standalone checker. It implements strict threshold checking: process
+/// must EXCEED the threshold (not equal to) to be considered a hog.
+///
 /// # Arguments
 /// * `proc` - Process to check
 /// * `rule` - DetectionRule with max_cpu_percent threshold
 ///
 /// # Returns
 /// true if proc.cpu_usage > rule.max_cpu_percent (when threshold > 0.0)
+///
+/// # Algorithm
+///
+/// Simple two-step check:
+/// 1. Check if threshold is enabled (> 0.0)
+/// 2. Compare process CPU usage against threshold
+///
+/// The comparison uses strict greater-than (>), not greater-or-equal (>=).
+/// This means a process at exactly the threshold is NOT considered a hog.
+///
+/// # Threshold Semantics
+///
+/// - **0.0 or negative**: Feature disabled, always returns false
+/// - **Positive value**: Threshold enabled, compare against cpu_usage
+/// - **No upper limit**: Can set arbitrarily high (e.g., 200.0)
+///
+/// The 0.0 sentinel value allows rules to disable CPU checking while
+/// enabling other checks (memory, name patterns, etc.).
+///
+/// # Edge Cases
+///
+/// 1. **Threshold disabled (0.0)**: Always returns false, even for 100% CPU
+/// 2. **CPU exactly at threshold**: Returns false (must exceed, not equal)
+/// 3. **CPU slightly above threshold**: Returns true (e.g., 80.1 > 80.0)
+/// 4. **Negative threshold**: Treated as disabled, returns false
+/// 5. **Very high CPU (>100%)**: Valid, can occur with multi-core sampling
+/// 6. **Negative CPU**: Invalid input, but comparison still works correctly
+///
+/// # Performance Characteristics
+///
+/// - **Time Complexity**: O(1) - two comparisons
+/// - **Space Complexity**: O(1) - no allocations
+/// - **Branch Prediction**: Excellent for typical workloads
+///   * Most processes have normal CPU usage (early return false)
+///   * Threshold check highly predictable (usually enabled)
+///
+/// # Examples
+///
+/// ```ruchy
+/// // Example 1: CPU hog detected
+/// let proc = new_process(100, "crypto", "/bin/crypto", 95.0, 100, Running);
+/// let rule = new_detection_rule("High CPU", High, 80.0, 0, "", "", true);
+/// let is_hog = detect_cpu_hog(proc, rule);
+/// // Result: true (95.0 > 80.0)
+/// ```
+///
+/// ```ruchy
+/// // Example 2: CPU below threshold
+/// let proc = new_process(100, "idle", "/bin/idle", 5.0, 100, Running);
+/// let rule = new_detection_rule("High CPU", High, 80.0, 0, "", "", true);
+/// let is_hog = detect_cpu_hog(proc, rule);
+/// // Result: false (5.0 <= 80.0)
+/// ```
+///
+/// ```ruchy
+/// // Example 3: CPU exactly at threshold
+/// let proc = new_process(100, "border", "/bin/border", 80.0, 100, Running);
+/// let rule = new_detection_rule("High CPU", High, 80.0, 0, "", "", true);
+/// let is_hog = detect_cpu_hog(proc, rule);
+/// // Result: false (80.0 NOT > 80.0)
+/// ```
+///
+/// ```ruchy
+/// // Example 4: Threshold disabled
+/// let proc = new_process(100, "maxed", "/bin/maxed", 99.9, 100, Running);
+/// let rule = new_detection_rule("No CPU Check", High, 0.0, 0, "", "", true);
+/// let is_hog = detect_cpu_hog(proc, rule);
+/// // Result: false (threshold disabled)
+/// ```
+///
+/// # Usage in Reaper
+///
+/// This function is called by rule_matches_process() as part of the overall
+/// detection logic. It can also be used standalone for specific CPU checks:
+///
+/// 1. **Within rule_matches_process()**: AND-combined with other checks
+/// 2. **Direct usage**: Custom logic or debugging
+/// 3. **Daemon loop**: Part of scan → detect → terminate cycle
+///
+/// # Design Rationale
+///
+/// - **Strict greater-than**: Prevents false positives at threshold boundary
+/// - **0.0 sentinel**: Simple, efficient way to disable check
+/// - **Separate function**: Reusable, testable, single responsibility
+/// - **No side effects**: Pure function, safe to call anywhere
+///
+/// # Future Enhancements
+///
+/// When Ruchy adds more features, consider:
+/// 1. **Threshold ranges**: min and max CPU (e.g., 20-40% for anomaly detection)
+/// 2. **Hysteresis**: Different thresholds for trigger vs clear
+/// 3. **Time-based**: CPU must be high for N seconds before triggering
+/// 4. **Average vs peak**: Track average CPU over time window
+/// 5. **Per-core metrics**: Detect single-core saturation
+/// 6. **Relative thresholds**: Percentage of total system CPU
+/// 7. **Statistical**: Trigger on CPU standard deviation
+///
+/// # Testing
+///
+/// Covered by 5 unit tests:
+/// - test_detect_cpu_hog_below_threshold() - CPU below threshold
+/// - test_detect_cpu_hog_above_threshold() - CPU above threshold
+/// - test_detect_cpu_hog_at_threshold() - CPU exactly at threshold
+/// - test_detect_cpu_hog_disabled_threshold() - Threshold disabled (0.0)
+/// - test_detect_cpu_hog_very_high() - Very high CPU (99.9%)
+///
+/// Additional testing via rule_matches_process() integration tests.
 fun detect_cpu_hog(proc: Process, rule: DetectionRule) -> bool {
-    // GREEN phase - implement threshold check
+    // REFACTOR phase - implementation unchanged, documentation added
 
     // If threshold is 0.0 or negative, feature is disabled
     if rule.max_cpu_percent <= 0.0 {
@@ -2311,26 +2422,30 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-302 GREEN PHASE");
-    println("Current: Detector - Implementing detect_cpu_hog() logic");
+    println("Status: SPRINT 4 - REAPER-302 REFACTOR PHASE");
+    println("Current: Detector - Documenting detect_cpu_hog()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
     println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-302 RED: detect_cpu_hog() tests (5 tests)");
+    println("  ✅ REAPER-302 GREEN: detect_cpu_hog() implementation");
     println("");
     println("Current TDD Cycle (detect_cpu_hog):");
     println("  ✅ RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code quality");
+    println("  ✅ GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("Implementation:");
-    println("  - Returns false if threshold <= 0.0 (disabled)");
-    println("  - Returns true if cpu_usage > max_cpu_percent");
-    println("  - Returns false otherwise");
+    println("Documentation Added (~120 lines):");
+    println("  - Algorithm: two-step threshold check (O(1))");
+    println("  - Threshold semantics (0.0 = disabled)");
+    println("  - 6 edge cases documented");
+    println("  - Performance: O(1) time/space, excellent branch prediction");
+    println("  - 4 usage examples with expected results");
+    println("  - Design rationale and future enhancements (7 ideas)");
     println("");
     println("Total Tests: 60 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
     println("========================================");
 }
