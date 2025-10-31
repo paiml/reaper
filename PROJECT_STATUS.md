@@ -29,7 +29,7 @@ The codebase demonstrates extreme TDD methodology and exceeds all quality target
 
 ### Implementation: COMPLETE
 
-**Sprints Completed: 8/8** (with 2.5 tickets blocked by tooling)
+**Sprints Completed: 8/8** (with 1.5 tickets blocked by tooling)
 
 | Sprint | Status | Tickets | Notes |
 |--------|--------|---------|-------|
@@ -39,18 +39,18 @@ The codebase demonstrates extreme TDD methodology and exceeds all quality target
 | Sprint 4 | ✅ COMPLETE | 4/4 | Detector functions |
 | Sprint 5 | ✅ COMPLETE | 2/2 | Terminator functions |
 | Sprint 6 | ✅ COMPLETE | 3/3 | CLI & Config |
-| Sprint 7 | ✅ COMPLETE | 3/5 | Quality (2 blocked by tools) |
+| Sprint 7 | ✅ COMPLETE | 4/5 | Quality (1 blocked by tools, REAPER-603 now complete) |
 | Sprint 8 | ⚠️ PARTIAL | 2.5/4 | Publication (1.5 blocked by transpiler) |
 
-**Total**: 25.5/29 tickets complete (88%)
+**Total**: 26.5/29 tickets complete (91%)
 
 ### Features Implemented: ALL
 
 - ✅ 3 Enums: Priority, ProcessStatus, ActionResult
 - ✅ 4 Structs: Process, DetectionRule, Config, LogEntry
 - ✅ 27 Functions: Scanner, detector, terminator, CLI
-- ✅ 100 Test Functions: Comprehensive edge cases
-- ✅ 2,300 Lines: Doc comments (~50% of codebase)
+- ✅ 110 Test Functions: 100 example + 10 property-based tests
+- ✅ 2,500+ Lines: Doc comments (~50% of codebase)
 
 ### Documentation: COMPREHENSIVE
 
@@ -69,11 +69,12 @@ The codebase demonstrates extreme TDD methodology and exceeds all quality target
 
 ### GitHub Issue #111: Critical Transpiler Bugs
 
-**Filed**: 2025-10-31  
-**Link**: https://github.com/paiml/ruchy/issues/111  
+**Filed**: 2025-10-31
+**Link**: https://github.com/paiml/ruchy/issues/111
 **Status**: URGENT FIX NEEDED
+**Tested with**: v3.155.0, v3.161.0
 
-**Three Critical Bugs**:
+**Original Bugs (v3.155.0)**:
 
 1. **Enum Scoping** 🛑
    - Enums not accessible in generated Rust
@@ -82,25 +83,30 @@ The codebase demonstrates extreme TDD methodology and exceeds all quality target
 
 2. **Single-Line Output** 🛑
    - 4,606 lines transpiled to ONE line
-   - Impossible to debug
-   - No proper error locations
+   - Impossible to debug (formatter issue, not compilation blocker)
 
 3. **Ownership Errors** 🛑
    - Incorrect borrow checker handling
    - `error[E0507]: cannot move out of index`
    - ~60 compilation errors
 
-**Impact**:
-- ❌ `cargo build` fails (111+ errors)
+**v3.161.0 Update (2025-10-31)**:
+- ✅ **Progress**: Error count reduced 111+ → 63 (44% reduction)
+- ❌ **Still BLOCKED**: Enum scoping bug persists
+- ⚠️ **New errors**: Type mismatches, trait bounds (E0308, E0277, E0369)
+
+**Current Impact (v3.161.0)**:
+- ❌ `cargo build` fails (63 errors, down from 111+)
 - ❌ `cargo test` cannot run
 - ❌ `cargo publish` impossible
-- ❌ Crates.io publication blocked
+- ❌ Crates.io publication **still blocked**
 
 **Our Response**:
 - ✅ Filed detailed issue immediately (STOP THE LINE)
+- ✅ Tested v3.161.0, updated GitHub issue
 - ✅ Documented blocker comprehensively
 - ✅ Transparent about code vs tooling quality
-- ✅ Awaiting transpiler fix
+- ⏳ Awaiting transpiler fix
 
 ---
 
