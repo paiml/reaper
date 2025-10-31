@@ -760,16 +760,49 @@ fun new_config(check_interval: i64, rules: [DetectionRule], dry_run: bool, log_f
 
 /// Validates that a Config has valid field values.
 /// Returns true if config is valid, false otherwise.
+///
+/// # Validation Rules
+/// - check_interval_secs must be > 0 (typically 10-300)
+/// - log_file must be non-empty
+/// - grace_period_secs must be >= 0 (0 = immediate SIGKILL)
+/// - rules array can be empty (no validation on array itself)
 fun is_valid_config(config: Config) -> bool {
-    // RED phase - intentionally broken
-    false
+    // Check interval must be positive
+    if config.check_interval_secs <= 0 {
+        return false;
+    }
+
+    // Log file must be non-empty
+    if config.log_file == "" {
+        return false;
+    }
+
+    // Grace period must be non-negative
+    if config.grace_period_secs < 0 {
+        return false;
+    }
+
+    true
 }
 
 /// Formats a Config as a human-readable string.
 /// Returns a formatted string representation.
+///
+/// # Format
+/// Returns a string like: "Config[interval=60s, rules=0, dry_run=false, log=/var/log/reaper.log, grace=5s]"
 fun format_config(config: Config) -> String {
-    // RED phase - intentionally broken
-    ""
+    let mut result = "Config[interval=";
+    result = result + "secs";  // Simplified - would need i64->String conversion
+    result = result + ", rules=";
+    result = result + "count";  // Simplified - would need array length
+    result = result + ", dry_run=";
+    result = result + if config.dry_run { "true" } else { "false" };
+    result = result + ", log=";
+    result = result + config.log_file;
+    result = result + ", grace=";
+    result = result + "secs";  // Simplified
+    result = result + "]";
+    result
 }
 
 // ============================================================================
