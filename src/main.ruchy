@@ -1,33 +1,242 @@
 // Reaper - Rogue Process Watcher
-// TICKET: REAPER-003 - Minimal version due to Ruchy limitations
-// See BLOCKED.md for details on language limitations
+// Pure Ruchy v3.155.0 Implementation
+// Single-file architecture with extreme TDD
+//
+// TICKET: REAPER-103 (RED phase) - Process struct tests
+// Status: Writing failing tests (RED phase of TDD)
 
-// Note: Ruchy doesn't yet support:
-// - pub struct (Issue #106)
-// - pub enum (Issue #106)
-// - Separate module files (Issue #106)
-// This is a minimal scaffold until language features are added
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
+
+// ProcessStatus enum - Represents process state
+enum ProcessStatus {
+    Running,
+    Sleeping,
+    Stopped,
+    Zombie,
+}
+
+// Process struct - Represents a single process snapshot
+struct Process {
+    pid: i32,
+    name: String,
+    cmdline: String,
+    cpu_usage: f64,
+    memory_mb: i64,
+    status: ProcessStatus,
+}
+
+// ============================================================================
+// HELPER FUNCTIONS (to be implemented in GREEN phase)
+// ============================================================================
+
+// Create a new Process instance
+// Returns a Process with the given values
+fun new_process(pid: i32, name: String, cmdline: String, cpu_usage: f64, memory_mb: i64, status: ProcessStatus) -> Process {
+    // TODO: Implement validation in GREEN phase
+    // - pid must be positive
+    // - cpu_usage must be 0.0-100.0
+    // - memory_mb must be non-negative
+    Process {
+        pid: pid,
+        name: name,
+        cmdline: cmdline,
+        cpu_usage: cpu_usage,
+        memory_mb: memory_mb,
+        status: status,
+    }
+}
+
+// Validate that a Process has valid field values
+// Returns true if process is valid, false otherwise
+fun is_valid_process(proc: Process) -> bool {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    false  // Placeholder - always returns false for RED phase
+}
+
+// Format process for display
+// Returns a string representation of the process
+fun format_process(proc: Process) -> String {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    ""  // Placeholder - returns empty string for RED phase
+}
+
+// ============================================================================
+// TESTS - RED PHASE (expect these to FAIL)
+// ============================================================================
+
+#[test]
+fun test_process_creation() {
+    // Create a valid process
+    let proc = new_process(
+        1234,
+        "test_process",
+        "/usr/bin/test",
+        45.5,
+        256,
+        ProcessStatus::Running
+    );
+
+    // Verify fields are set correctly
+    assert(proc.pid == 1234, "Process PID should be 1234");
+    assert(proc.name == "test_process", "Process name should be 'test_process'");
+    assert(proc.cmdline == "/usr/bin/test", "Process cmdline should be '/usr/bin/test'");
+    assert(proc.cpu_usage == 45.5, "Process CPU usage should be 45.5");
+    assert(proc.memory_mb == 256, "Process memory should be 256 MB");
+    // Note: Can't easily test enum equality yet, skip for now
+}
+
+#[test]
+fun test_process_validation_positive_pid() {
+    // Create process with valid PID
+    let valid_proc = new_process(
+        1234,
+        "valid",
+        "/bin/valid",
+        0.0,
+        100,
+        ProcessStatus::Running
+    );
+
+    // This should FAIL in RED phase (is_valid_process returns false)
+    assert(is_valid_process(valid_proc), "Process with positive PID should be valid");
+}
+
+#[test]
+fun test_process_validation_negative_pid() {
+    // Create process with invalid negative PID
+    let invalid_proc = new_process(
+        -1,
+        "invalid",
+        "/bin/invalid",
+        0.0,
+        100,
+        ProcessStatus::Running
+    );
+
+    // This should FAIL in RED phase (is_valid_process returns false for all)
+    assert(!is_valid_process(invalid_proc), "Process with negative PID should be invalid");
+}
+
+#[test]
+fun test_process_validation_cpu_range() {
+    // Create process with CPU usage out of range
+    let invalid_cpu = new_process(
+        1234,
+        "cpu_hog",
+        "/bin/hog",
+        150.0,  // Invalid: > 100.0
+        100,
+        ProcessStatus::Running
+    );
+
+    // This should FAIL in RED phase
+    assert(!is_valid_process(invalid_cpu), "Process with CPU > 100% should be invalid");
+}
+
+#[test]
+fun test_process_validation_negative_memory() {
+    // Create process with negative memory
+    let invalid_mem = new_process(
+        1234,
+        "test",
+        "/bin/test",
+        50.0,
+        -100,  // Invalid: negative memory
+        ProcessStatus::Running
+    );
+
+    // This should FAIL in RED phase
+    assert(!is_valid_process(invalid_mem), "Process with negative memory should be invalid");
+}
+
+#[test]
+fun test_process_format() {
+    // Create a process
+    let proc = new_process(
+        9999,
+        "format_test",
+        "/usr/bin/format_test --arg",
+        75.5,
+        512,
+        ProcessStatus::Running
+    );
+
+    // Format should include key information
+    let formatted = format_process(proc);
+
+    // This will FAIL in RED phase (format_process returns empty string)
+    assert(formatted != "", "Formatted process should not be empty");
+
+    // Note: More detailed format checks in GREEN/REFACTOR phases
+}
+
+#[test]
+fun test_process_zero_cpu() {
+    // Process with zero CPU usage should be valid
+    let proc = new_process(
+        1234,
+        "idle",
+        "/bin/idle",
+        0.0,
+        100,
+        ProcessStatus::Sleeping
+    );
+
+    assert(proc.cpu_usage == 0.0, "Zero CPU usage should be allowed");
+}
+
+#[test]
+fun test_process_max_cpu() {
+    // Process with 100% CPU usage should be valid
+    let proc = new_process(
+        1234,
+        "busy",
+        "/bin/busy",
+        100.0,
+        100,
+        ProcessStatus::Running
+    );
+
+    assert(proc.cpu_usage == 100.0, "100% CPU usage should be allowed");
+}
+
+#[test]
+fun test_process_zero_memory() {
+    // Process with zero memory should be valid (kernel threads)
+    let proc = new_process(
+        2,
+        "kthreadd",
+        "",
+        0.0,
+        0,
+        ProcessStatus::Running
+    );
+
+    assert(proc.memory_mb == 0, "Zero memory should be allowed");
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
 
 fun main() {
     println("========================================");
-    println("Reaper v0.1.0 - Rogue Process Watcher");
-    println("Pure Ruchy Showcase CLI Tool");
+    println("Reaper v0.2.0 - Rogue Process Watcher");
+    println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Project Status: BLOCKED");
-    println("Waiting for Ruchy language features:");
-    println("  - Multi-file module support (Issue #106)");
-    println("  - pub struct support");
-    println("  - pub enum support");
+    println("Status: REAPER-103 RED PHASE");
+    println("Current: Writing failing tests for Process struct");
     println("");
-    println("Current Capabilities:");
-    println("  - Basic Ruchy syntax");
-    println("  - Function definitions");
-    println("  - String and numeric types");
+    println("TDD Cycle:");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code");
     println("");
-    println("Next Steps:");
-    println("  1. Monitor github.com/paiml/ruchy/issues/106");
-    println("  2. Update when language features available");
-    println("  3. Implement full specification");
+    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
