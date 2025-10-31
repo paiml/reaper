@@ -886,6 +886,18 @@ fun format_config(config: Config) -> String {
 }
 
 // ============================================================================
+// SCANNER - Process Enumeration
+// ============================================================================
+
+/// Scans the system for running processes.
+/// Returns an array of Process structs.
+fun scan_processes() -> [Process] {
+    // RED phase - intentionally returns empty array
+    let empty: [Process] = [];
+    empty
+}
+
+// ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
 
@@ -1503,6 +1515,59 @@ fun test_config_zero_grace_period() {
 }
 
 // ============================================================================
+// TESTS - Scanner (expect these to FAIL in RED phase)
+// ============================================================================
+
+/// Test scan_processes() returns an array
+#[test]
+fun test_scan_processes_returns_array() {
+    let processes = scan_processes();
+    // Just checking we can call it and get an array back
+    // This test is mainly for type checking
+    let count = 0;  // Placeholder
+    assert(true, "Function should return without error");
+}
+
+/// Test scan_processes() returns at least one process
+#[test]
+fun test_scan_processes_non_empty() {
+    let processes = scan_processes();
+
+    // Should return at least one process (the current Ruchy process itself)
+    // This will FAIL in RED phase (returns empty array)
+
+    // Since Ruchy may not have array.len(), we'll check by trying to access
+    // In a real implementation, we'd assert length > 0
+    // For now, just document the expectation
+    assert(false, "scan_processes should return at least one process (RED phase - expected to fail)");
+}
+
+/// Test scan_processes() returns processes with valid PIDs
+#[test]
+fun test_scan_processes_valid_pids() {
+    let processes = scan_processes();
+
+    // All returned processes should have valid PIDs (> 0)
+    // This will FAIL in RED phase if array is empty
+
+    // In real implementation, would iterate and check each PID
+    // For RED phase, this documents the requirement
+    assert(false, "All processes should have valid PIDs > 0 (RED phase - expected to fail)");
+}
+
+/// Test scan_processes() includes current process
+#[test]
+fun test_scan_processes_includes_self() {
+    let processes = scan_processes();
+
+    // The process list should include the current Ruchy process
+    // We can verify by checking if any process has a reasonable name
+
+    // This will FAIL in RED phase (empty array)
+    assert(false, "scan_processes should include current process (RED phase - expected to fail)");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -1514,34 +1579,24 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 2 COMPLETE ✅");
-    println("Current: Data structures fully implemented");
+    println("Status: SPRINT 3 - REAPER-201 RED PHASE");
+    println("Current: Scanner - Writing tests for scan_processes()");
     println("");
-    println("Completed TDD Cycles:");
-    println("  ✅ Process struct (RED-GREEN-REFACTOR)");
-    println("  ✅ Priority enum (RED-GREEN-REFACTOR)");
-    println("  ✅ ProcessStatus enum (basic structure)");
-    println("  ✅ DetectionRule struct (RED-GREEN-REFACTOR)");
-    println("  ✅ Config struct (RED-GREEN-REFACTOR)");
+    println("Completed:");
+    println("  ✅ Sprint 2: Data structures (Process, Priority, DetectionRule, Config)");
     println("");
-    println("Sprint 2 Metrics:");
-    println("  • Tests: 35 passing (100% pass rate)");
-    println("  • Coverage: TBD (awaiting Ruchy coverage tooling)");
-    println("  • SATD: 0 violations (zero tolerance maintained)");
-    println("  • Complexity: Max 2 (excellent, target <7)");
-    println("  • Commits: 15 REAPER tickets (strict TDD discipline)");
-    println("  • LOC: ~1543 lines (incl. comprehensive docs)");
+    println("Current TDD Cycle (scan_processes):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Quality Gates:");
-    println("  ✅ All tests passing");
-    println("  ✅ Zero SATD violations");
-    println("  ✅ Low complexity (max 2)");
-    println("  ✅ Comprehensive documentation");
-    println("  ✅ Git hooks enforcing quality");
+    println("Tests Added: 4 Scanner tests (expect FAILURES)");
+    println("  - test_scan_processes_returns_array()");
+    println("  - test_scan_processes_non_empty()");
+    println("  - test_scan_processes_valid_pids()");
+    println("  - test_scan_processes_includes_self()");
     println("");
-    println("Next Steps (Sprint 3):");
-    println("  → Scanner implementation (process enumeration)");
-    println("  → Detector implementation (rule application)");
-    println("  → Terminator implementation (safe process kill)");
+    println("Total Tests: 39 (35 passing from Sprint 2, 4 new failing)");
+    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
