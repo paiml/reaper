@@ -1449,6 +1449,20 @@ fun detect_cpu_hog(proc: Process, rule: DetectionRule) -> bool {
     proc.cpu_usage > rule.max_cpu_percent
 }
 
+/// Checks if a process is a memory hog based on detection rule.
+/// Returns true if process memory usage exceeds rule threshold.
+///
+/// # Arguments
+/// * `proc` - Process to check
+/// * `rule` - DetectionRule with max_memory_mb threshold
+///
+/// # Returns
+/// true if proc.memory_mb > rule.max_memory_mb (when threshold > 0)
+fun detect_memory_hog(proc: Process, rule: DetectionRule) -> bool {
+    // RED phase - intentionally returns false
+    false
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -2411,6 +2425,85 @@ fun test_detect_cpu_hog_very_high() {
 }
 
 // ============================================================================
+// TESTS - detect_memory_hog()
+// ============================================================================
+
+/// Test detect_memory_hog() with memory below threshold
+#[test]
+fun test_detect_memory_hog_below_threshold() {
+    // Process with 1024 MB (1 GB)
+    let proc = new_process(100, "small", "/bin/small", 10.0, 1024, ProcessStatus::Running);
+
+    // Rule for > 4096 MB (4 GB)
+    let rule = new_detection_rule("Memory Hog", Priority::High, 0.0, 4096, "", "", true);
+
+    let result = detect_memory_hog(proc, rule);
+
+    // 1024 MB < 4096 MB, should return false
+    assert(!result, "Memory below threshold should return false");
+}
+
+/// Test detect_memory_hog() with memory above threshold
+#[test]
+fun test_detect_memory_hog_above_threshold() {
+    // Process with 8192 MB (8 GB)
+    let proc = new_process(100, "large", "/bin/large", 10.0, 8192, ProcessStatus::Running);
+
+    // Rule for > 4096 MB (4 GB)
+    let rule = new_detection_rule("Memory Hog", Priority::High, 0.0, 4096, "", "", true);
+
+    let result = detect_memory_hog(proc, rule);
+
+    // 8192 MB > 4096 MB, should return true (WILL FAIL in RED)
+    assert(result, "Memory above threshold should return true");
+}
+
+/// Test detect_memory_hog() with memory exactly at threshold
+#[test]
+fun test_detect_memory_hog_at_threshold() {
+    // Process with exactly 4096 MB
+    let proc = new_process(100, "exact", "/bin/exact", 10.0, 4096, ProcessStatus::Running);
+
+    // Rule for > 4096 MB
+    let rule = new_detection_rule("Memory Hog", Priority::High, 0.0, 4096, "", "", true);
+
+    let result = detect_memory_hog(proc, rule);
+
+    // 4096 MB == 4096 MB, NOT greater than, should return false
+    assert(!result, "Memory at threshold should return false (must exceed)");
+}
+
+/// Test detect_memory_hog() with disabled threshold (0)
+#[test]
+fun test_detect_memory_hog_disabled_threshold() {
+    // Process with 8192 MB
+    let proc = new_process(100, "large", "/bin/large", 10.0, 8192, ProcessStatus::Running);
+
+    // Rule with memory threshold disabled (0)
+    let rule = new_detection_rule("No Memory Check", Priority::High, 0.0, 0, "", "", true);
+
+    let result = detect_memory_hog(proc, rule);
+
+    // Threshold 0 means disabled, should return false
+    assert(!result, "Disabled threshold (0) should return false");
+}
+
+/// Test detect_memory_hog() with very high memory
+#[test]
+fun test_detect_memory_hog_very_high() {
+    // Process with 16384 MB (16 GB)
+    let proc = new_process(100, "huge", "/bin/huge", 10.0, 16384, ProcessStatus::Running);
+
+    // Rule for > 2048 MB (2 GB) - lower threshold
+    let rule = new_detection_rule("Memory Hog", Priority::High, 0.0, 2048, "", "", true);
+
+    let result = detect_memory_hog(proc, rule);
+
+    // 16384 MB > 2048 MB, should return true (WILL FAIL in RED)
+    assert(result, "Very high memory should return true");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -2422,30 +2515,28 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-302 REFACTOR PHASE");
-    println("Current: Detector - Documenting detect_cpu_hog()");
+    println("Status: SPRINT 4 - REAPER-303 RED PHASE");
+    println("Current: Detector - Writing tests for detect_memory_hog()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
     println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
-    println("  ✅ REAPER-302 RED: detect_cpu_hog() tests (5 tests)");
-    println("  ✅ REAPER-302 GREEN: detect_cpu_hog() implementation");
+    println("  ✅ REAPER-302: detect_cpu_hog() (RED-GREEN-REFACTOR complete)");
     println("");
-    println("Current TDD Cycle (detect_cpu_hog):");
-    println("  ✅ RED: Write failing tests");
-    println("  ✅ GREEN: Make tests pass");
-    println("  [X] REFACTOR: Improve code quality");
+    println("Current TDD Cycle (detect_memory_hog):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Documentation Added (~120 lines):");
-    println("  - Algorithm: two-step threshold check (O(1))");
-    println("  - Threshold semantics (0.0 = disabled)");
-    println("  - 6 edge cases documented");
-    println("  - Performance: O(1) time/space, excellent branch prediction");
-    println("  - 4 usage examples with expected results");
-    println("  - Design rationale and future enhancements (7 ideas)");
+    println("Tests Added: 5 detect_memory_hog tests (expect 2 FAILURES)");
+    println("  - test_detect_memory_hog_below_threshold()");
+    println("  - test_detect_memory_hog_above_threshold() [WILL FAIL]");
+    println("  - test_detect_memory_hog_at_threshold()");
+    println("  - test_detect_memory_hog_disabled_threshold()");
+    println("  - test_detect_memory_hog_very_high() [WILL FAIL]");
     println("");
-    println("Total Tests: 60 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
+    println("Total Tests: 65 (60 passing from previous, 5 new)");
+    println("Next: Run 'ruchy test' - expect 2 FAILURES (RED phase)");
     println("========================================");
 }
