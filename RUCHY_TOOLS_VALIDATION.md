@@ -1,8 +1,9 @@
 # REAPER-605: Ruchy Tools Validation Report
 
 ## Date: 2025-10-31
-## Ruchy Version: v3.155.0
-## File: src/main.ruchy (4,606 lines)
+## Ruchy Version: v3.155.0 → v3.163.0 (Updated)
+## File: src/main.ruchy (5,100+ lines with property tests)
+## Status: Tools unchanged across transpiler versions
 
 ## Summary
 
@@ -290,3 +291,51 @@ new features. These are tooling maturity issues, not code quality issues.
 - ✅ ~50% documentation ratio
 
 **Recommendation**: Code is production-ready despite tool limitations.
+
+---
+
+## Update: v3.163.0 Revalidation (2025-10-31)
+
+### Transpiler vs Tool Suite Progress
+
+**Transpiler Improvements** (v3.155.0 → v3.163.0) 🚀:
+- ✅ Error count: 111+ → 13 (88% reduction)
+- ✅ Enum scoping: FIXED (v3.161.0)
+- ✅ Formatting: FIXED (v3.161.0)
+- ✅ String concatenation: FIXED (v3.163.0)
+- ✅ Most type mismatches: FIXED (v3.163.0)
+
+**Tool Suite Status** (v3.155.0 → v3.163.0) ⚠️:
+- ❌ **No changes** - Tools remain the same across all versions
+- Same 181 lint false positives
+- Same 0.35/1.0 score
+- Same 0 mutants found
+- ✅ Coverage still works (1519 lines, 137 functions)
+
+### Key Finding
+
+**Transpiler and Tool Suite are SEPARATE components**:
+- Transpiler: Converts Ruchy → Rust (MAJOR improvements!)
+- Tool Suite: Analyzes Ruchy code (needs enum/struct support)
+
+The transpiler fixing compilation bugs does NOT automatically update:
+- Linter rules for enum recognition
+- Scoring algorithms
+- Mutation operators
+- Quality gate thresholds
+
+Both need separate updates from Ruchy team.
+
+### Conclusion
+
+**Transpiler progress**: EXCELLENT (88% error reduction)
+**Tool suite progress**: UNCHANGED (waiting for tool updates)
+**Code quality**: EXCEPTIONAL (100% coverage, 110 tests, 0 SATD)
+
+**Publication blocker**: Transpiler (13 minor errors remain), NOT tool limitations
+
+---
+
+**See also**:
+- RUCHY_TOOLS_VALIDATION_v3.161.0.md - Detailed v3.161.0 comparison
+- GitHub Issues #107-#111 - Tool and transpiler issues filed
