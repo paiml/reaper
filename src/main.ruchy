@@ -188,6 +188,42 @@ struct DetectionRule {
     enabled: bool,
 }
 
+/// Config holds the application configuration for Reaper.
+///
+/// Contains all runtime settings including scan intervals, detection rules,
+/// operational modes (dry-run), logging configuration, and termination behavior.
+///
+/// # Fields
+/// * `check_interval_secs` - How often to scan processes (seconds, default: 60)
+/// * `rules` - Array of DetectionRule instances to apply
+/// * `dry_run` - If true, log detections but don't terminate processes
+/// * `log_file` - Path to log file (default: "/var/log/reaper.log")
+/// * `grace_period_secs` - Seconds to wait between SIGTERM and SIGKILL (default: 5)
+///
+/// # Validation Rules
+/// * `check_interval_secs` must be > 0 (typically 10-300)
+/// * `rules` array can be empty (no rules = no detections)
+/// * `log_file` must be non-empty
+/// * `grace_period_secs` must be >= 0 (0 = SIGKILL immediately)
+///
+/// # Example
+/// ```
+/// let config = new_config(
+///     60,      // Check every minute
+///     [],      // No rules yet
+///     false,   // Real mode (not dry-run)
+///     "/var/log/reaper.log",
+///     5        // 5 second grace period
+/// );
+/// ```
+struct Config {
+    check_interval_secs: i64,
+    rules: [DetectionRule],
+    dry_run: bool,
+    log_file: String,
+    grace_period_secs: i64,
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -710,6 +746,32 @@ fun format_rule(rule: DetectionRule) -> String {
     result
 }
 
+/// Creates a new Config instance with the given values.
+/// Returns a Config with all fields set.
+fun new_config(check_interval: i64, rules: [DetectionRule], dry_run: bool, log_file: String, grace_period: i64) -> Config {
+    Config {
+        check_interval_secs: check_interval,
+        rules: rules,
+        dry_run: dry_run,
+        log_file: log_file,
+        grace_period_secs: grace_period,
+    }
+}
+
+/// Validates that a Config has valid field values.
+/// Returns true if config is valid, false otherwise.
+fun is_valid_config(config: Config) -> bool {
+    // RED phase - intentionally broken
+    false
+}
+
+/// Formats a Config as a human-readable string.
+/// Returns a formatted string representation.
+fun format_config(config: Config) -> String {
+    // RED phase - intentionally broken
+    ""
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -1192,6 +1254,142 @@ fun test_rule_zero_thresholds() {
 }
 
 // ============================================================================
+// TESTS - Config Struct (expect these to FAIL in RED phase)
+// ============================================================================
+
+/// Test Config creation and field access
+#[test]
+fun test_config_creation() {
+    let empty_rules: [DetectionRule] = [];
+    let config = new_config(
+        60,
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        5
+    );
+
+    assert(config.check_interval_secs == 60, "Check interval should be set");
+    assert(config.dry_run == false, "Dry run should be set");
+    assert(config.log_file == "/var/log/reaper.log", "Log file should be set");
+    assert(config.grace_period_secs == 5, "Grace period should be set");
+}
+
+/// Test is_valid_config() accepts valid configs
+#[test]
+fun test_valid_config() {
+    let empty_rules: [DetectionRule] = [];
+    let valid_config = new_config(
+        60,
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        5
+    );
+
+    // This will FAIL in RED phase (is_valid_config returns false)
+    assert(is_valid_config(valid_config), "Valid config should pass validation");
+}
+
+/// Test is_valid_config() rejects zero check interval
+#[test]
+fun test_invalid_zero_check_interval() {
+    let empty_rules: [DetectionRule] = [];
+    let invalid_config = new_config(
+        0,  // Invalid: must be > 0
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        5
+    );
+
+    // This will FAIL in RED phase
+    assert(!is_valid_config(invalid_config), "Config with zero interval should be invalid");
+}
+
+/// Test is_valid_config() rejects negative check interval
+#[test]
+fun test_invalid_negative_check_interval() {
+    let empty_rules: [DetectionRule] = [];
+    let invalid_config = new_config(
+        -10,  // Invalid: must be > 0
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        5
+    );
+
+    // This will FAIL in RED phase
+    assert(!is_valid_config(invalid_config), "Config with negative interval should be invalid");
+}
+
+/// Test is_valid_config() rejects empty log file
+#[test]
+fun test_invalid_empty_log_file() {
+    let empty_rules: [DetectionRule] = [];
+    let invalid_config = new_config(
+        60,
+        empty_rules,
+        false,
+        "",  // Invalid: must be non-empty
+        5
+    );
+
+    // This will FAIL in RED phase
+    assert(!is_valid_config(invalid_config), "Config with empty log file should be invalid");
+}
+
+/// Test is_valid_config() rejects negative grace period
+#[test]
+fun test_invalid_negative_grace_period() {
+    let empty_rules: [DetectionRule] = [];
+    let invalid_config = new_config(
+        60,
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        -5  // Invalid: must be >= 0
+    );
+
+    // This will FAIL in RED phase
+    assert(!is_valid_config(invalid_config), "Config with negative grace period should be invalid");
+}
+
+/// Test format_config() returns non-empty string
+#[test]
+fun test_format_config() {
+    let empty_rules: [DetectionRule] = [];
+    let config = new_config(
+        60,
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        5
+    );
+
+    let formatted = format_config(config);
+
+    // This will FAIL in RED phase (format_config returns empty string)
+    assert(formatted != "", "Formatted config should not be empty");
+}
+
+/// Test config with zero grace period (valid - means immediate SIGKILL)
+#[test]
+fun test_config_zero_grace_period() {
+    let empty_rules: [DetectionRule] = [];
+    let config = new_config(
+        60,
+        empty_rules,
+        false,
+        "/var/log/reaper.log",
+        0  // Valid: 0 means immediate SIGKILL
+    );
+
+    // Zero grace period should be valid
+    assert(config.grace_period_secs == 0, "Zero grace period should be allowed");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -1203,31 +1401,30 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: REAPER-108 RED PHASE");
-    println("Current: Writing tests for DetectionRule struct");
+    println("Status: REAPER-109 RED PHASE");
+    println("Current: Writing tests for Config struct");
     println("");
     println("Completed Cycles:");
     println("  ✅ Process struct (full RED-GREEN-REFACTOR)");
     println("  ✅ Priority enum (full RED-GREEN-REFACTOR)");
+    println("  ✅ DetectionRule struct (full RED-GREEN-REFACTOR)");
     println("");
-    println("Current TDD Cycle (DetectionRule struct):");
+    println("Current TDD Cycle (Config struct):");
     println("  [X] RED: Write failing tests");
     println("  [ ] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests Added: 10 DetectionRule tests (expect FAILURES)");
-    println("  - test_detection_rule_creation()");
-    println("  - test_valid_detection_rule()");
-    println("  - test_invalid_cpu_threshold()");
-    println("  - test_invalid_memory_threshold()");
-    println("  - test_rule_matches_cpu_hog()");
-    println("  - test_rule_matches_memory_hog()");
-    println("  - test_rule_matches_name_pattern()");
-    println("  - test_disabled_rule_no_match()");
-    println("  - test_format_detection_rule()");
-    println("  - test_rule_zero_thresholds()");
+    println("Tests Added: 8 Config tests (expect FAILURES)");
+    println("  - test_config_creation()");
+    println("  - test_valid_config()");
+    println("  - test_invalid_zero_check_interval()");
+    println("  - test_invalid_negative_check_interval()");
+    println("  - test_invalid_empty_log_file()");
+    println("  - test_invalid_negative_grace_period()");
+    println("  - test_format_config()");
+    println("  - test_config_zero_grace_period()");
     println("");
-    println("Total Tests: 27 (17 passing, 10 new failing)");
+    println("Total Tests: 35 (27 passing, 8 new failing)");
     println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
