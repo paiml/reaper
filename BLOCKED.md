@@ -1,56 +1,63 @@
-# Blocked Issues
+# Blocked Issues - UPDATED v3.155.0
 
-## Active Blockers
+## ✅ PARTIALLY UNBLOCKED (v3.155.0)
+
+**Update**: 2025-10-31 - Ruchy v3.155.0 released
+**Status**: ✅ **PARTIALLY UNBLOCKED** - Can implement with constraints
 
 ### Issue #106: Missing Language Features for Real Projects
 - **GitHub**: https://github.com/paiml/ruchy/issues/106
 - **Filed**: 2025-10-31
-- **Status**: BLOCKED - Cannot proceed with implementation
-- **Severity**: CRITICAL - Blocks entire project
+- **Status**: ⚠️ PARTIALLY RESOLVED in v3.155.0
+- **Severity**: ⚠️ REDUCED - Single-file implementation now possible
 
-**Missing Features**:
-1. ❌ **Multi-file Module Support**
-   - Syntax `mod scanner;` not supported
-   - Can only use inline modules: `mod scanner { }`
+**Features Status (v3.155.0)**:
+
+1. ❌ **Multi-file Module Support** - STILL BLOCKED
+   - Syntax `mod scanner;` parses but runtime not implemented
+   - Error: "Expression type not yet implemented: ModuleDeclaration"
    - Impact: All code must be in single file
+   - **Workaround**: Single-file implementation
 
-2. ❌ **Custom Struct Support**
-   - `pub struct Process { }` not supported
-   - Cannot define custom data types
-   - Impact: Cannot model domain properly
+2. ✅ **Custom Struct Support** - ✅ WORKING!
+   - `struct Process { pid: i32, name: String }` fully functional
+   - Struct literals work: `Process { pid: 1234, name: "test" }`
+   - Field access works: `proc.pid`, `proc.name`
+   - Impact: ✅ **CAN NOW MODEL DOMAIN PROPERLY**
 
-3. ❌ **Enum Support**
-   - `pub enum Priority { }` not supported
-   - Cannot use type-safe variants
-   - Impact: No type safety for states/modes
+3. ✅ **Enum Support** - ✅ WORKING!
+   - `enum Priority { High, Medium, Low }` fully functional
+   - Enum variants work: `Priority::High`
+   - Impact: ✅ **CAN NOW USE TYPE-SAFE ENUMS**
 
-**Overall Impact**: **PROJECT BLOCKED**
+**Overall Impact**: ✅ **PROJECT PARTIALLY UNBLOCKED**
 
 The Reaper specification requires:
-- Process struct with metadata fields
-- Rule priority enums
-- Multiple modules (scanner, detector, terminator, config, logger, cli)
+- ✅ Process struct with metadata fields - **NOW POSSIBLE**
+- ✅ Rule priority enums - **NOW POSSIBLE**
+- ❌ Multiple modules (scanner, detector, terminator, config, logger, cli) - **STILL BLOCKED**
 
-**None of these are possible in current Ruchy (v3.154.0)**
+**2 out of 3 CRITICAL features now working!**
 
 **Current State**:
-- Minimal `src/main.ruchy` with basic println statements
-- Reference modules in `reference/` directory (documentation only)
-- Project demonstrates what Ruchy CANNOT do yet
+- Can implement full specification in single file
+- Reference modules in `reference/` directory can be combined
+- Project can now demonstrate what Ruchy v3.155.0 CAN do!
 
-**What Works**:
+**What Works (v3.155.0)**:
 - ✅ Basic functions
 - ✅ String and numeric types
-- ✅ Inline modules (all code in one file)
+- ✅ **Custom structs** (NEW!)
+- ✅ **Enums** (NEW!)
+- ✅ **Struct literals** (NEW!)
+- ✅ **Field access** (NEW!)
 - ✅ println! output
 - ✅ Cargo integration
 
-**What Doesn't Work**:
-- ❌ Separate module files
-- ❌ Custom structs
-- ❌ Enums
-- ❌ Real project structure
-- ❌ Domain modeling
+**What Still Doesn't Work**:
+- ❌ Separate module files (multi-file)
+- ❌ Inline modules (runtime not implemented)
+- ⚠️ Project organization (workaround: single file)
 
 **Quality Validation**:
 ```bash
@@ -61,14 +68,44 @@ cargo build                  # ✅ PASS
 cargo run                    # ✅ PASS (shows blocked status)
 ```
 
-**Resolution Plan**:
-1. **Monitor**: Watch paiml/ruchy#106 for updates
-2. **Reevaluate**: When features added, revisit project viability
-3. **Alternative**: Consider simpler showcase project that fits current Ruchy capabilities
-4. **Documentation**: Keep reference modules as future roadmap
+**Resolution Plan (v3.155.0)**:
+1. ✅ **IMPLEMENT NOW**: Build full Reaper in single file
+2. ✅ **Use Structs + Enums**: Proper domain modeling now possible
+3. ⚠️ **Accept Constraint**: Single-file organization (500-1000 lines)
+4. 🔄 **Refactor Later**: Split into modules when multi-file support added
 
-**Recommendation**:
-This project should be **PAUSED** until Ruchy adds necessary language features. Consider:
-- Building simpler calculator/utility tool within current capabilities
-- Contributing to Ruchy language development
-- Using this as motivation for Ruchy feature priorities
+**Recommendation (UPDATED)**:
+✅ **PROCEED WITH IMPLEMENTATION** - Single-file approach
+
+**Why Now**:
+- ✅ Structs + enums solve the MAIN blocker (domain modeling)
+- ✅ Single file acceptable for CLI tool
+- ✅ Can achieve all project goals (working tool, extreme TDD, crates.io)
+- ✅ Shows off Ruchy v3.155.0 capabilities
+- 🔄 Easy to refactor to multi-file when available
+
+**Single-File Structure**:
+```ruchy
+// src/main.ruchy (~500-1000 lines estimated)
+
+// ========== DATA STRUCTURES ==========
+struct Process { ... }
+struct DetectionRule { ... }
+struct Config { ... }
+enum Priority { High, Medium, Low }
+enum ProcessStatus { Running, Sleeping, Zombie }
+
+// ========== SCANNER ==========
+fun scan_processes() -> [Process] { ... }
+
+// ========== DETECTOR ==========
+fun detect_rogue(proc: Process, rules: [DetectionRule]) -> bool { ... }
+
+// ========== TERMINATOR ==========
+fun terminate_process(pid: i32) -> bool { ... }
+
+// ========== CLI ==========
+fun main() { ... }
+```
+
+**See**: UNBLOCKED.md for complete v3.155.0 assessment and implementation plan
