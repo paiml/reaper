@@ -1317,6 +1317,20 @@ fun apply_rules(procs: [Process], rules: [DetectionRule]) -> [Process] {
     result
 }
 
+/// Checks if a process is a CPU hog based on detection rule.
+/// Returns true if process CPU usage exceeds rule threshold.
+///
+/// # Arguments
+/// * `proc` - Process to check
+/// * `rule` - DetectionRule with max_cpu_percent threshold
+///
+/// # Returns
+/// true if proc.cpu_usage > rule.max_cpu_percent (when threshold > 0.0)
+fun detect_cpu_hog(proc: Process, rule: DetectionRule) -> bool {
+    // RED phase - intentionally returns false
+    false
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -2200,6 +2214,85 @@ fun test_apply_rules_multiple_matches() {
 }
 
 // ============================================================================
+// TESTS - detect_cpu_hog()
+// ============================================================================
+
+/// Test detect_cpu_hog() with CPU below threshold
+#[test]
+fun test_detect_cpu_hog_below_threshold() {
+    // Process with 50% CPU
+    let proc = new_process(100, "low", "/bin/low", 50.0, 100, ProcessStatus::Running);
+
+    // Rule for > 80% CPU
+    let rule = new_detection_rule("CPU Hog", Priority::High, 80.0, 0, "", "", true);
+
+    let result = detect_cpu_hog(proc, rule);
+
+    // 50% < 80%, should return false
+    assert(!result, "CPU below threshold should return false");
+}
+
+/// Test detect_cpu_hog() with CPU above threshold
+#[test]
+fun test_detect_cpu_hog_above_threshold() {
+    // Process with 95% CPU
+    let proc = new_process(100, "high", "/bin/high", 95.0, 100, ProcessStatus::Running);
+
+    // Rule for > 80% CPU
+    let rule = new_detection_rule("CPU Hog", Priority::High, 80.0, 0, "", "", true);
+
+    let result = detect_cpu_hog(proc, rule);
+
+    // 95% > 80%, should return true (WILL FAIL in RED)
+    assert(result, "CPU above threshold should return true");
+}
+
+/// Test detect_cpu_hog() with CPU exactly at threshold
+#[test]
+fun test_detect_cpu_hog_at_threshold() {
+    // Process with exactly 80% CPU
+    let proc = new_process(100, "exact", "/bin/exact", 80.0, 100, ProcessStatus::Running);
+
+    // Rule for > 80% CPU
+    let rule = new_detection_rule("CPU Hog", Priority::High, 80.0, 0, "", "", true);
+
+    let result = detect_cpu_hog(proc, rule);
+
+    // 80% == 80%, NOT greater than, should return false
+    assert(!result, "CPU at threshold should return false (must exceed)");
+}
+
+/// Test detect_cpu_hog() with disabled threshold (0.0)
+#[test]
+fun test_detect_cpu_hog_disabled_threshold() {
+    // Process with 95% CPU
+    let proc = new_process(100, "high", "/bin/high", 95.0, 100, ProcessStatus::Running);
+
+    // Rule with CPU threshold disabled (0.0)
+    let rule = new_detection_rule("No CPU Check", Priority::High, 0.0, 0, "", "", true);
+
+    let result = detect_cpu_hog(proc, rule);
+
+    // Threshold 0.0 means disabled, should return false
+    assert(!result, "Disabled threshold (0.0) should return false");
+}
+
+/// Test detect_cpu_hog() with very high CPU
+#[test]
+fun test_detect_cpu_hog_very_high() {
+    // Process with 99.9% CPU
+    let proc = new_process(100, "maxed", "/bin/maxed", 99.9, 100, ProcessStatus::Running);
+
+    // Rule for > 50% CPU (lower threshold)
+    let rule = new_detection_rule("CPU Hog", Priority::High, 50.0, 0, "", "", true);
+
+    let result = detect_cpu_hog(proc, rule);
+
+    // 99.9% > 50%, should return true (WILL FAIL in RED)
+    assert(result, "Very high CPU should return true");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -2211,29 +2304,27 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-301 REFACTOR PHASE");
-    println("Current: Detector - Documenting apply_rules()");
+    println("Status: SPRINT 4 - REAPER-302 RED PHASE");
+    println("Current: Detector - Writing tests for detect_cpu_hog()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
-    println("  ✅ REAPER-301 RED: apply_rules() tests (6 tests)");
-    println("  ✅ REAPER-301 GREEN: apply_rules() implementation");
+    println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
     println("");
-    println("Current TDD Cycle (apply_rules):");
-    println("  ✅ RED: Write failing tests");
-    println("  ✅ GREEN: Make tests pass");
-    println("  [X] REFACTOR: Improve code quality");
+    println("Current TDD Cycle (detect_cpu_hog):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Documentation Added (~140 lines):");
-    println("  - Algorithm explanation (nested loop with short-circuit)");
-    println("  - Rule matching logic (OR across rules)");
-    println("  - 6 edge cases documented");
-    println("  - Performance analysis (O(n*m) time, O(k) space)");
-    println("  - 3 usage examples");
-    println("  - Future enhancements (7 ideas)");
+    println("Tests Added: 5 detect_cpu_hog tests (expect 2 FAILURES)");
+    println("  - test_detect_cpu_hog_below_threshold()");
+    println("  - test_detect_cpu_hog_above_threshold() [WILL FAIL]");
+    println("  - test_detect_cpu_hog_at_threshold()");
+    println("  - test_detect_cpu_hog_disabled_threshold()");
+    println("  - test_detect_cpu_hog_very_high() [WILL FAIL]");
     println("");
-    println("Total Tests: 55 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
+    println("Total Tests: 60 (55 passing from previous, 5 new)");
+    println("Next: Run 'ruchy test' - expect 2 FAILURES (RED phase)");
     println("========================================");
 }
