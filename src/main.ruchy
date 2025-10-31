@@ -1,0 +1,14 @@
+// Ruchy main program
+// This file will be automatically transpiled to main.rs during cargo build
+
+fun main() {
+    println("Hello, Ruchy!");
+
+    // Example: Using variables
+    let name = "World";
+    println(f"Hello, {name}!");
+
+    // Example: Using collections
+    let numbers = [1, 2, 3, 4, 5];
+    println(f"Numbers: {numbers:?}");
+}
