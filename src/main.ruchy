@@ -1156,14 +1156,137 @@ fun get_process_cpu_usage(pid: i32) -> f64 {
 /// Applies detection rules to a list of processes.
 /// Returns processes that match at least one enabled rule.
 ///
+/// This is the core detection function that filters a process list against
+/// configured detection rules. It implements OR logic across rules: a process
+/// matches if it satisfies at least one enabled rule.
+///
 /// # Arguments
 /// * `procs` - Array of Process structs to check
 /// * `rules` - Array of DetectionRule instances to apply
 ///
 /// # Returns
 /// Array of Process structs that match at least one rule
+///
+/// # Algorithm
+///
+/// The function uses a nested loop approach:
+/// 1. For each process in the input array:
+///    a. Check against all enabled rules
+///    b. If any rule matches (rule_matches_process returns true), mark process
+///    c. Break inner loop on first match (short-circuit optimization)
+/// 2. Add matching processes to result array
+/// 3. Return result array
+///
+/// # Rule Matching Logic
+///
+/// A process matches a rule if ALL of the following conditions are met:
+/// - Rule is enabled (rule.enabled == true)
+/// - Rule's thresholds are exceeded (handled by rule_matches_process):
+///   * CPU usage > rule.max_cpu_percent (if configured)
+///   * Memory usage > rule.max_memory_mb (if configured)
+///   * Name pattern matches (if configured)
+///   * Command line pattern matches (if configured)
+///
+/// Disabled rules (rule.enabled == false) are always skipped.
+///
+/// # Edge Cases
+///
+/// 1. **Empty process list**: Returns empty array
+/// 2. **Empty rules list**: Returns empty array (no rules to match)
+/// 3. **All rules disabled**: Returns empty array (no enabled rules)
+/// 4. **No matches**: Returns empty array (no processes match any rule)
+/// 5. **Multiple rules match same process**: Process appears once in result
+///    (no duplicates - we break on first match)
+/// 6. **All processes match**: Returns copy of input array
+///
+/// # Performance Characteristics
+///
+/// - **Time Complexity**: O(n * m) where:
+///   * n = number of processes
+///   * m = number of rules
+///   * Best case: O(n) if first rule matches all processes
+///   * Worst case: O(n * m) if no matches found
+///
+/// - **Space Complexity**: O(k) where:
+///   * k = number of matching processes
+///   * Best case: O(1) if no matches
+///   * Worst case: O(n) if all processes match
+///
+/// - **Optimization**: Short-circuit on first match per process
+///   * Avoids checking remaining rules once match found
+///   * Significant for large rule sets
+///
+/// # Examples
+///
+/// ```ruchy
+/// // Example 1: High CPU detection
+/// let procs = [
+///     new_process(100, "chrome", "/usr/bin/chrome", 95.0, 2048, Running),
+///     new_process(200, "vim", "/usr/bin/vim", 0.1, 50, Running),
+/// ];
+/// let rules = [
+///     new_detection_rule("CPU Hog", High, 80.0, 0, "", "", true),
+/// ];
+/// let rogues = apply_rules(procs, rules);
+/// // Result: [chrome] (95% CPU > 80% threshold)
+/// ```
+///
+/// ```ruchy
+/// // Example 2: Multiple rules, one match
+/// let procs = [
+///     new_process(100, "leaky", "/usr/bin/leaky", 10.0, 8192, Running),
+/// ];
+/// let rules = [
+///     new_detection_rule("CPU Hog", High, 80.0, 0, "", "", true),
+///     new_detection_rule("Memory Hog", High, 0.0, 4096, "", "", true),
+/// ];
+/// let rogues = apply_rules(procs, rules);
+/// // Result: [leaky] (matches memory rule: 8192 MB > 4096 MB)
+/// ```
+///
+/// ```ruchy
+/// // Example 3: Disabled rule ignored
+/// let procs = [
+///     new_process(100, "hog", "/usr/bin/hog", 95.0, 8192, Running),
+/// ];
+/// let rules = [
+///     new_detection_rule("Disabled", High, 80.0, 0, "", "", false),
+/// ];
+/// let rogues = apply_rules(procs, rules);
+/// // Result: [] (rule is disabled)
+/// ```
+///
+/// # Usage in Reaper
+///
+/// This function is called once per scan cycle (typically every 60 seconds):
+/// 1. Scan all processes (scan_processes)
+/// 2. Apply rules to filter rogues (apply_rules) ← This function
+/// 3. Terminate rogue processes (terminate_process)
+/// 4. Log actions (log_detection, log_termination)
+/// 5. Sleep until next cycle
+///
+/// # Future Enhancements
+///
+/// When Ruchy adds more features, consider:
+/// 1. **Rule priorities**: Implement priority-based sorting of results
+/// 2. **Rule groups**: AND/OR logic between rule groups
+/// 3. **Pattern caching**: Cache compiled regex patterns for performance
+/// 4. **Parallel checking**: Check processes in parallel for large lists
+/// 5. **Rule statistics**: Track hit counts and false positive rates
+/// 6. **Allowlist support**: Exclude processes even if they match rules
+/// 7. **Time-based rules**: Only apply rules during certain time windows
+///
+/// # Testing
+///
+/// Covered by 6 unit tests:
+/// - test_apply_rules_returns_array() - Basic function returns array
+/// - test_apply_rules_empty_rules() - Empty rules returns empty
+/// - test_apply_rules_no_matches() - No matching processes
+/// - test_apply_rules_one_match() - Single matching process
+/// - test_apply_rules_disabled_rule() - Disabled rules ignored
+/// - test_apply_rules_multiple_matches() - Multiple matching processes
 fun apply_rules(procs: [Process], rules: [DetectionRule]) -> [Process] {
-    // GREEN phase - implement matching logic
+    // REFACTOR phase - implementation unchanged, documentation added
     let mut result: [Process] = [];
 
     // Iterate through all processes
@@ -2088,26 +2211,29 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-301 GREEN PHASE");
-    println("Current: Detector - Implementing apply_rules() logic");
+    println("Status: SPRINT 4 - REAPER-301 REFACTOR PHASE");
+    println("Current: Detector - Documenting apply_rules()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
-    println("  ✅ REAPER-301 RED: apply_rules() tests (6 tests added)");
+    println("  ✅ REAPER-301 RED: apply_rules() tests (6 tests)");
+    println("  ✅ REAPER-301 GREEN: apply_rules() implementation");
     println("");
     println("Current TDD Cycle (apply_rules):");
     println("  ✅ RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code quality");
+    println("  ✅ GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("Implementation:");
-    println("  - Iterates through all processes");
-    println("  - Checks each against all enabled rules");
-    println("  - Uses rule_matches_process() for matching");
-    println("  - Returns array of matching processes");
+    println("Documentation Added (~140 lines):");
+    println("  - Algorithm explanation (nested loop with short-circuit)");
+    println("  - Rule matching logic (OR across rules)");
+    println("  - 6 edge cases documented");
+    println("  - Performance analysis (O(n*m) time, O(k) space)");
+    println("  - 3 usage examples");
+    println("  - Future enhancements (7 ideas)");
     println("");
     println("Total Tests: 55 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
     println("========================================");
 }
