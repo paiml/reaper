@@ -130,7 +130,54 @@ struct Process {
 }
 
 /// DetectionRule defines criteria for identifying rogue processes.
-/// Combines resource thresholds with pattern matching.
+///
+/// A detection rule combines resource thresholds (CPU, memory) with pattern
+/// matching (process name, command line) to identify processes that should be
+/// terminated. Rules can be prioritized and enabled/disabled dynamically.
+///
+/// # Fields
+/// * `name` - Human-readable rule name (e.g., "High CPU Hog")
+/// * `priority` - Rule priority (High, Medium, Low)
+/// * `max_cpu_percent` - CPU threshold in % (0.0-100.0, 0.0 = disabled)
+/// * `max_memory_mb` - Memory threshold in MB (>= 0, 0 = disabled)
+/// * `name_pattern` - Process name pattern to match (empty = any)
+/// * `cmdline_pattern` - Command line pattern to match (empty = any)
+/// * `enabled` - Whether this rule is active
+///
+/// # Threshold Semantics
+/// * **Zero values disable that threshold** (0.0 for CPU, 0 for memory)
+/// * Multiple thresholds use AND logic (all must match)
+/// * Disabled rules never match any process
+///
+/// # Pattern Matching
+/// * Patterns use case-sensitive substring matching
+/// * Empty patterns match any value
+/// * Both name and cmdline patterns must match if specified
+///
+/// # Example
+/// ```
+/// // Rule to catch processes using > 80% CPU with "python" in name
+/// let rule = new_detection_rule(
+///     "Python CPU Hog",
+///     Priority::High,
+///     80.0,  // CPU threshold
+///     0,     // No memory limit
+///     "python",
+///     "",
+///     true
+/// );
+///
+/// // Rule to catch any process using > 4GB memory
+/// let mem_rule = new_detection_rule(
+///     "Memory Hog",
+///     Priority::Medium,
+///     0.0,   // No CPU limit
+///     4096,  // 4GB memory threshold
+///     "",
+///     "",
+///     true
+/// );
+/// ```
 struct DetectionRule {
     name: String,
     priority: Priority,
@@ -413,10 +460,37 @@ fun is_higher_priority(p1: Priority, p2: Priority) -> bool {
     v1 > v2
 }
 
-/// Creates a new DetectionRule instance.
-/// Returns a DetectionRule with the given values.
+/// Creates a new DetectionRule instance with the given values.
+///
+/// This constructor does NOT validate inputs. Use `is_valid_rule()` after
+/// creation to ensure all field values are valid.
+///
+/// # Arguments
+/// * `name` - Human-readable rule name
+/// * `priority` - Rule priority (High, Medium, Low)
+/// * `max_cpu` - CPU threshold % (0.0-100.0, 0.0 = disabled)
+/// * `max_mem` - Memory threshold MB (>= 0, 0 = disabled)
+/// * `name_pattern` - Process name pattern (empty = any)
+/// * `cmdline_pattern` - Command line pattern (empty = any)
+/// * `enabled` - Whether rule is active
+///
+/// # Returns
+/// A DetectionRule instance with all fields set
+///
+/// # Example
+/// ```
+/// let rule = new_detection_rule(
+///     "CPU Hog",
+///     Priority::High,
+///     80.0,
+///     1024,
+///     "python",
+///     "",
+///     true
+/// );
+/// assert(is_valid_rule(rule), "Rule should be valid");
+/// ```
 fun new_detection_rule(name: String, priority: Priority, max_cpu: f64, max_mem: i64, name_pattern: String, cmdline_pattern: String, enabled: bool) -> DetectionRule {
-    // TODO: Implement validation in GREEN phase
     DetectionRule {
         name: name,
         priority: priority,
@@ -429,12 +503,42 @@ fun new_detection_rule(name: String, priority: Priority, max_cpu: f64, max_mem: 
 }
 
 /// Validates that a DetectionRule has valid field values.
-/// Returns true if rule is valid, false otherwise.
+///
+/// Checks that all rule fields contain valid values according to the
+/// DetectionRule specification. This should be called after construction
+/// to ensure rule integrity before use.
+///
+/// # Arguments
+/// * `rule` - The DetectionRule to validate
+///
+/// # Returns
+/// * `true` if all validations pass
+/// * `false` if any validation fails
 ///
 /// # Validation Rules
-/// - CPU threshold must be in range [0.0, 100.0] (0.0 = disabled)
-/// - Memory threshold must be >= 0 (0 = disabled)
-/// - Name must be non-empty
+/// * **CPU threshold**: Must be in range [0.0, 100.0]
+///   - 0.0 means CPU checking is disabled
+///   - Values > 100.0 are invalid (even on multi-core systems)
+/// * **Memory threshold**: Must be >= 0
+///   - 0 means memory checking is disabled
+///   - Negative values are invalid
+/// * **Name**: Must be non-empty
+///   - Empty names would make rules unidentifiable in logs
+///
+/// # Example
+/// ```
+/// // Valid rule
+/// let valid = new_detection_rule("Test", Priority::High, 80.0, 1024, "", "", true);
+/// assert(is_valid_rule(valid));
+///
+/// // Invalid rule (CPU > 100%)
+/// let invalid = new_detection_rule("Bad", Priority::High, 150.0, 1024, "", "", true);
+/// assert(!is_valid_rule(invalid));
+///
+/// // Valid rule with zero thresholds (disabled)
+/// let pattern_only = new_detection_rule("PatternOnly", Priority::Low, 0.0, 0, "test", "", true);
+/// assert(is_valid_rule(pattern_only));
+/// ```
 fun is_valid_rule(rule: DetectionRule) -> bool {
     // CPU threshold must be 0.0-100.0
     if rule.max_cpu_percent < 0.0 || rule.max_cpu_percent > 100.0 {
@@ -455,14 +559,52 @@ fun is_valid_rule(rule: DetectionRule) -> bool {
 }
 
 /// Checks if a process matches this detection rule.
-/// Returns true if the process should be flagged by this rule.
+///
+/// Determines whether a process should be flagged as "rogue" according to
+/// this rule's criteria. Uses AND logic - all enabled conditions must match.
+///
+/// # Arguments
+/// * `rule` - The DetectionRule to apply
+/// * `proc` - The Process to check
+///
+/// # Returns
+/// * `true` if the process matches all enabled rule criteria
+/// * `false` if:
+///   - The rule is disabled
+///   - Any enabled condition fails to match
+///   - All thresholds are disabled (0/empty)
 ///
 /// # Matching Logic
-/// - If rule is disabled, returns false
-/// - If CPU threshold > 0.0, process CPU must exceed it
-/// - If memory threshold > 0, process memory must exceed it
-/// - If name pattern is set, process name must contain it (case-insensitive)
-/// - ALL enabled conditions must match (AND logic)
+/// 1. **Disabled Check**: If `rule.enabled == false`, return false immediately
+/// 2. **CPU Threshold**: If `max_cpu_percent > 0.0`, process CPU must EXCEED it
+///    - Example: threshold 80.0 matches process with 80.1% CPU but not 80.0%
+/// 3. **Memory Threshold**: If `max_memory_mb > 0`, process memory must EXCEED it
+///    - Example: threshold 1024MB matches process with 1025MB but not 1024MB
+/// 4. **Name Pattern**: If non-empty, process name must contain pattern
+///    - Uses case-sensitive substring matching (contains)
+/// 5. **Cmdline Pattern**: If non-empty, cmdline must contain pattern
+///    - Uses case-sensitive substring matching (contains)
+/// 6. **Result**: Returns true only if ALL enabled conditions match
+///
+/// # Zero/Empty Values
+/// * Zero thresholds (0.0, 0) mean "disabled" - not checked
+/// * Empty patterns ("") mean "match any" - not checked
+/// * If ALL thresholds/patterns are disabled, rule matches everything (if enabled)
+///
+/// # Example
+/// ```
+/// // Rule: CPU > 80% with "python" in name
+/// let rule = new_detection_rule("Python Hog", Priority::High, 80.0, 0, "python", "", true);
+///
+/// let proc1 = new_process(1, "python3", "/usr/bin/python3", 90.0, 512, ProcessStatus::Running);
+/// assert(rule_matches_process(rule, proc1));  // Matches: 90% > 80% AND name contains "python"
+///
+/// let proc2 = new_process(2, "python3", "/usr/bin/python3", 75.0, 512, ProcessStatus::Running);
+/// assert(!rule_matches_process(rule, proc2));  // No match: 75% <= 80%
+///
+/// let proc3 = new_process(3, "java", "/usr/bin/java", 95.0, 512, ProcessStatus::Running);
+/// assert(!rule_matches_process(rule, proc3));  // No match: name doesn't contain "python"
+/// ```
 fun rule_matches_process(rule: DetectionRule, proc: Process) -> bool {
     // Disabled rules never match
     if !rule.enabled {
@@ -485,13 +627,8 @@ fun rule_matches_process(rule: DetectionRule, proc: Process) -> bool {
 
     // Check name pattern (if specified - non-empty)
     if rule.name_pattern != "" {
-        // Case-insensitive contains check
-        // Simple implementation: convert to lowercase and check
-        let proc_name_lower = proc.name;  // TODO: Add proper lowercase conversion when available
-        let pattern_lower = rule.name_pattern;
-
-        // For now, use simple contains check (Ruchy should support this)
-        // This is a simplification - ideally we'd convert to lowercase first
+        // Case-sensitive substring matching using contains()
+        // Note: Future enhancement could add case-insensitive matching
         if !proc.name.contains(rule.name_pattern) {
             return false;
         }
@@ -508,11 +645,34 @@ fun rule_matches_process(rule: DetectionRule, proc: Process) -> bool {
     true
 }
 
-/// Formats a DetectionRule as a human-readable string.
-/// Returns a formatted string representation.
+/// Formats a DetectionRule as a human-readable string for display.
 ///
-/// # Format
-/// Returns a string like: "Rule: CPU Hog [High] CPU>80.0% MEM>1024MB pattern:python (enabled)"
+/// Creates a compact string representation suitable for logging and UI display.
+/// Includes rule name, priority, active thresholds, patterns, and enabled status.
+///
+/// # Arguments
+/// * `rule` - The DetectionRule to format
+///
+/// # Returns
+/// A formatted string with the structure:
+/// `"Rule: <name> [<priority>] <thresholds> <patterns> (<status>)"`
+///
+/// # Format Details
+/// * Name and priority are always included
+/// * Thresholds only shown if > 0 (enabled)
+/// * Patterns only shown if non-empty
+/// * Status shows "enabled" or "disabled"
+///
+/// # Example
+/// ```
+/// let rule1 = new_detection_rule("CPU Hog", Priority::High, 80.0, 0, "python", "", true);
+/// let output1 = format_rule(rule1);
+/// // output1 == "Rule: CPU Hog [High] CPU>threshold pattern:python (enabled)"
+///
+/// let rule2 = new_detection_rule("Memory Hog", Priority::Medium, 0.0, 4096, "", "", false);
+/// let output2 = format_rule(rule2);
+/// // output2 == "Rule: Memory Hog [Medium] MEM>threshold (disabled)"
+/// ```
 fun format_rule(rule: DetectionRule) -> String {
     let priority_str = priority_to_string(rule.priority);
     let enabled_str = if rule.enabled { "enabled" } else { "disabled" };
