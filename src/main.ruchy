@@ -2,14 +2,25 @@
 // Pure Ruchy v3.155.0 Implementation
 // Single-file architecture with extreme TDD
 //
-// TICKET: REAPER-104 (GREEN phase) - Process struct implementation
-// Status: Making tests pass (GREEN phase of TDD)
+// TICKET: REAPER-105 (REFACTOR phase) - Improve code quality to A+
+// Status: Refactoring for quality (keeping tests GREEN)
+//
+// This tool automatically detects and terminates rogue processes that consume
+// excessive system resources. Based on real production incident (2025-10-31)
+// where 17 rogue processes required manual intervention.
 
 // ============================================================================
 // DATA STRUCTURES
 // ============================================================================
 
-// ProcessStatus enum - Represents process state
+/// ProcessStatus represents the current execution state of a process.
+/// Maps to Linux process states from /proc/[pid]/stat.
+///
+/// # Variants
+/// * `Running` - Process is actively executing on CPU (state 'R')
+/// * `Sleeping` - Process is waiting for I/O or event (state 'S')
+/// * `Stopped` - Process has been stopped by signal (state 'T')
+/// * `Zombie` - Process terminated but not yet reaped by parent (state 'Z')
 enum ProcessStatus {
     Running,
     Sleeping,
@@ -17,7 +28,32 @@ enum ProcessStatus {
     Zombie,
 }
 
-// Process struct - Represents a single process snapshot
+/// Process represents a snapshot of a single process at a point in time.
+/// Contains all information needed for detection and termination decisions.
+///
+/// # Fields
+/// * `pid` - Process ID (must be positive, typically 1-32768)
+/// * `name` - Process name from /proc/[pid]/comm (max 16 chars in Linux)
+/// * `cmdline` - Full command line with arguments from /proc/[pid]/cmdline
+/// * `cpu_usage` - CPU usage percentage (0.0-100.0)
+/// * `memory_mb` - Memory usage in megabytes (resident set size)
+/// * `status` - Current process execution state
+///
+/// # Validation
+/// Use `is_valid_process()` to validate field values after creation.
+///
+/// # Example
+/// ```
+/// let proc = new_process(
+///     1234,
+///     "my_process",
+///     "/usr/bin/my_process --flag",
+///     45.5,
+///     256,
+///     ProcessStatus::Running
+/// );
+/// assert(is_valid_process(proc));
+/// ```
 struct Process {
     pid: i32,
     name: String,
@@ -31,9 +67,33 @@ struct Process {
 // HELPER FUNCTIONS
 // ============================================================================
 
-// Create a new Process instance
-// Returns a Process with the given values
-// Note: Does not validate inputs - use is_valid_process() to validate
+/// Creates a new Process instance with the given values.
+///
+/// This constructor does NOT validate inputs. Use `is_valid_process()`
+/// after creation to ensure all field values are within valid ranges.
+///
+/// # Arguments
+/// * `pid` - Process ID (should be positive)
+/// * `name` - Process name (from /proc/[pid]/comm)
+/// * `cmdline` - Full command line (from /proc/[pid]/cmdline)
+/// * `cpu_usage` - CPU usage percentage (should be 0.0-100.0)
+/// * `memory_mb` - Memory usage in MB (should be non-negative)
+/// * `status` - Current process state
+///
+/// # Returns
+/// A new Process instance with the specified values
+///
+/// # Example
+/// ```
+/// let proc = new_process(
+///     1234,
+///     "test",
+///     "/usr/bin/test",
+///     45.5,
+///     256,
+///     ProcessStatus::Running
+/// );
+/// ```
 fun new_process(pid: i32, name: String, cmdline: String, cpu_usage: f64, memory_mb: i64, status: ProcessStatus) -> Process {
     Process {
         pid: pid,
@@ -45,20 +105,49 @@ fun new_process(pid: i32, name: String, cmdline: String, cpu_usage: f64, memory_
     }
 }
 
-// Validate that a Process has valid field values
-// Returns true if process is valid, false otherwise
+/// Validates that a Process has valid field values.
+///
+/// Checks three critical invariants:
+/// 1. PID must be positive (> 0)
+/// 2. CPU usage must be in range [0.0, 100.0]
+/// 3. Memory usage must be non-negative (>= 0)
+///
+/// # Arguments
+/// * `proc` - The Process to validate
+///
+/// # Returns
+/// * `true` if all validations pass
+/// * `false` if any validation fails
+///
+/// # Validation Rules
+/// * PID: Must be > 0 (Linux PIDs start at 1, max typically 32768)
+/// * CPU: Must be >= 0.0 and <= 100.0 (percentage)
+/// * Memory: Must be >= 0 (kernel threads can have 0 memory)
+///
+/// # Example
+/// ```
+/// let valid = new_process(1234, "test", "/bin/test", 50.0, 256, ProcessStatus::Running);
+/// assert(is_valid_process(valid));
+///
+/// let invalid = new_process(-1, "bad", "/bin/bad", 50.0, 256, ProcessStatus::Running);
+/// assert(!is_valid_process(invalid));
+/// ```
 fun is_valid_process(proc: Process) -> bool {
     // Validate PID (must be positive)
+    // Linux PIDs start at 1, with 0 reserved for scheduler
     if proc.pid <= 0 {
         return false;
     }
 
-    // Validate CPU usage (must be 0.0-100.0)
+    // Validate CPU usage (must be in range [0.0, 100.0])
+    // Note: On multi-core systems, individual process usage per core
+    // is still capped at 100% in our model
     if proc.cpu_usage < 0.0 || proc.cpu_usage > 100.0 {
         return false;
     }
 
     // Validate memory (must be non-negative)
+    // Kernel threads legitimately have 0 memory usage
     if proc.memory_mb < 0 {
         return false;
     }
@@ -67,10 +156,33 @@ fun is_valid_process(proc: Process) -> bool {
     true
 }
 
-// Format process for display
-// Returns a string representation of the process
+/// Formats a Process as a human-readable string for display.
+///
+/// Creates a compact string representation including the most important
+/// fields for process identification and resource usage monitoring.
+///
+/// # Arguments
+/// * `proc` - The Process to format
+///
+/// # Returns
+/// A formatted string in the format:
+/// `"Process[PID=1234, name='test', CPU=45.5%, MEM=256MB]"`
+///
+/// # Format Details
+/// * PID displayed as integer
+/// * Name shown in single quotes for clarity
+/// * CPU usage with % suffix
+/// * Memory with MB suffix
+///
+/// # Example
+/// ```
+/// let proc = new_process(9999, "example", "/usr/bin/example", 75.5, 512, ProcessStatus::Running);
+/// let output = format_process(proc);
+/// // output == "Process[PID=9999, name='example', CPU=75.5%, MEM=512MB]"
+/// ```
 fun format_process(proc: Process) -> String {
-    // Format: "Process[PID=1234, name='test', CPU=45.5%, MEM=256MB]"
+    // Build formatted string with all key process information
+    // Format: Process[PID=X, name='Y', CPU=Z%, MEM=WMB]
     let formatted = "Process[PID=";
     formatted = formatted + proc.pid.to_string();
     formatted = formatted + ", name='";
@@ -84,12 +196,14 @@ fun format_process(proc: Process) -> String {
 }
 
 // ============================================================================
-// TESTS - GREEN PHASE (expect these to PASS)
+// TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
 
+/// Test basic Process creation and field access.
+/// Verifies that struct fields are correctly set and accessible.
 #[test]
 fun test_process_creation() {
-    // Create a valid process
+    // Create a valid process with typical values
     let proc = new_process(
         1234,
         "test_process",
@@ -108,9 +222,11 @@ fun test_process_creation() {
     // Note: Can't easily test enum equality yet, skip for now
 }
 
+/// Test validation accepts processes with positive PIDs.
+/// Valid PIDs should pass validation.
 #[test]
 fun test_process_validation_positive_pid() {
-    // Create process with valid PID
+    // Create process with valid positive PID
     let valid_proc = new_process(
         1234,
         "valid",
@@ -120,10 +236,11 @@ fun test_process_validation_positive_pid() {
         ProcessStatus::Running
     );
 
-    // This should FAIL in RED phase (is_valid_process returns false)
     assert(is_valid_process(valid_proc), "Process with positive PID should be valid");
 }
 
+/// Test validation rejects processes with negative PIDs.
+/// PIDs must be positive (> 0), so negative values should fail.
 #[test]
 fun test_process_validation_negative_pid() {
     // Create process with invalid negative PID
@@ -136,13 +253,14 @@ fun test_process_validation_negative_pid() {
         ProcessStatus::Running
     );
 
-    // This should FAIL in RED phase (is_valid_process returns false for all)
     assert(!is_valid_process(invalid_proc), "Process with negative PID should be invalid");
 }
 
+/// Test validation rejects processes with CPU usage > 100%.
+/// CPU usage must be in range [0.0, 100.0].
 #[test]
 fun test_process_validation_cpu_range() {
-    // Create process with CPU usage out of range
+    // Create process with CPU usage out of range (> 100%)
     let invalid_cpu = new_process(
         1234,
         "cpu_hog",
@@ -152,13 +270,14 @@ fun test_process_validation_cpu_range() {
         ProcessStatus::Running
     );
 
-    // This should FAIL in RED phase
     assert(!is_valid_process(invalid_cpu), "Process with CPU > 100% should be invalid");
 }
 
+/// Test validation rejects processes with negative memory.
+/// Memory usage must be non-negative (>= 0).
 #[test]
 fun test_process_validation_negative_memory() {
-    // Create process with negative memory
+    // Create process with invalid negative memory
     let invalid_mem = new_process(
         1234,
         "test",
@@ -168,13 +287,14 @@ fun test_process_validation_negative_memory() {
         ProcessStatus::Running
     );
 
-    // This should FAIL in RED phase
     assert(!is_valid_process(invalid_mem), "Process with negative memory should be invalid");
 }
 
+/// Test format_process() returns non-empty string.
+/// Formatted output is required for logging and display.
 #[test]
 fun test_process_format() {
-    // Create a process
+    // Create a process for formatting
     let proc = new_process(
         9999,
         "format_test",
@@ -187,15 +307,14 @@ fun test_process_format() {
     // Format should include key information
     let formatted = format_process(proc);
 
-    // This will FAIL in RED phase (format_process returns empty string)
     assert(formatted != "", "Formatted process should not be empty");
-
-    // Note: More detailed format checks in GREEN/REFACTOR phases
 }
 
+/// Test edge case: Process with 0% CPU usage.
+/// Zero CPU is valid (idle processes).
 #[test]
 fun test_process_zero_cpu() {
-    // Process with zero CPU usage should be valid
+    // Process with zero CPU usage should be valid (idle/sleeping)
     let proc = new_process(
         1234,
         "idle",
@@ -208,9 +327,11 @@ fun test_process_zero_cpu() {
     assert(proc.cpu_usage == 0.0, "Zero CPU usage should be allowed");
 }
 
+/// Test edge case: Process with 100% CPU usage.
+/// Maximum CPU usage is valid (busy processes).
 #[test]
 fun test_process_max_cpu() {
-    // Process with 100% CPU usage should be valid
+    // Process with 100% CPU usage should be valid (fully utilized)
     let proc = new_process(
         1234,
         "busy",
@@ -223,9 +344,11 @@ fun test_process_max_cpu() {
     assert(proc.cpu_usage == 100.0, "100% CPU usage should be allowed");
 }
 
+/// Test edge case: Process with 0 MB memory usage.
+/// Zero memory is valid (kernel threads have no userspace memory).
 #[test]
 fun test_process_zero_memory() {
-    // Process with zero memory should be valid (kernel threads)
+    // Process with zero memory should be valid (e.g., kthreadd)
     let proc = new_process(
         2,
         "kthreadd",
@@ -242,20 +365,27 @@ fun test_process_zero_memory() {
 // MAIN
 // ============================================================================
 
+/// Main entry point for Reaper process watcher.
+/// Currently in TDD development phase, demonstrating extreme TDD methodology.
 fun main() {
     println("========================================");
     println("Reaper v0.2.0 - Rogue Process Watcher");
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: REAPER-104 GREEN PHASE");
-    println("Current: Implementing Process struct validation");
+    println("Status: REAPER-105 REFACTOR PHASE");
+    println("Current: Improving code quality to A+ grade");
     println("");
     println("TDD Cycle:");
     println("  [✓] RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code");
+    println("  [✓] GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
+    println("Improvements:");
+    println("  - Comprehensive documentation (///doc comments)");
+    println("  - Detailed validation logic comments");
+    println("  - Enhanced code clarity");
+    println("");
+    println("Next: Run quality checks - expect A+ (0.95+)");
     println("========================================");
 }
