@@ -1,0 +1,678 @@
+# Reaper Process Watcher - Pure Ruchy v3.155.0 Implementation
+# Single-File Architecture with Extreme TDD
+# Updated: 2025-10-31 (Ruchy v3.155.0 partial unblock)
+
+meta:
+  project: Reaper - Rogue Process Detection and Termination Tool
+  language: Ruchy v3.155.0 (structs + enums now supported!)
+  architecture: Single-file (~500-1000 lines)
+  approach: Extreme Test-Driven Development (RED-GREEN-REFACTOR)
+  target: Showcase CLI tool + crates.io publication
+
+  constraints:
+    - "Single file only (multi-file modules not yet supported)"
+    - "Must use inline organization with clear sections"
+    - "Can use structs and enums (NEW in v3.155.0!)"
+
+  quality_gates:
+    max_complexity: 10
+    max_cognitive: 7
+    min_coverage: 0.80
+    target_coverage: 0.90
+    min_mutation_score: 0.80
+    satd_tolerance: 0
+    ruchy_score_min: 0.95  # A+ grade required
+
+  execution:
+    cycle: RED-GREEN-REFACTOR
+    commit_strategy: atomic_per_ticket
+    test_first: mandatory
+    tools_validation: all_15_ruchy_tools
+    debugging: ruchydbg_with_trace
+
+  references:
+    spec: ../ubuntu-config-scripts/docs/specifications/reaper-watcher-tool-pure-ruchy.md
+    ruchy_book: ../ruchy-book
+    quality_toolkit: ../paiml-mcp-agent-toolkit
+    unblock_doc: UNBLOCKED.md
+
+# ============================================================================
+# SPRINT 1: Foundation & Infrastructure ✅ COMPLETE
+# ============================================================================
+sprint_1:
+  id: SPRINT-1
+  name: "Foundation & Infrastructure"
+  status: COMPLETE
+  duration: "1 day"
+  outcome: "Complete tooling infrastructure ready for implementation"
+
+  completed_tickets:
+    - REAPER-001: "Initialize Ruchy project" ✅
+    - REAPER-002: "Configure quality gates" ✅
+    - REAPER-003: "Module structure (blocked, moved to reference/)" ✅
+    - REAPER-004: "STOP THE LINE - File Issue #106" ✅
+    - REAPER-005: "Integrate ruchydbg debugging tools" ✅
+    - REAPER-006: "Integrate PMAT analysis suite" ✅
+    - REAPER-007: "Create comprehensive Makefile" ✅
+    - REAPER-008: "Install git hooks with TDG enforcement" ✅
+
+# ============================================================================
+# SPRINT 2: Core Data Structures (CURRENT - v3.155.0 enabled!)
+# ============================================================================
+sprint_2:
+  id: SPRINT-2
+  name: "Core Data Structures - Single File Architecture"
+  status: ACTIVE
+  duration: "1-2 days"
+  target_version: "v0.2.0"
+
+  goal: |
+    Design and implement all core data structures using new struct/enum support.
+    Single-file architecture with clear sectioning.
+
+  tickets:
+    - id: REAPER-101
+      title: "Update roadmap for v3.155.0 single-file approach"
+      priority: HIGH
+      status: IN_PROGRESS
+      hours: 0.5
+      dependencies: []
+
+      description: |
+        Update roadmap.yaml to reflect Ruchy v3.155.0 capabilities and
+        single-file implementation strategy.
+
+      tasks:
+        - "Create roadmap-v3.155.yaml with single-file tickets"
+        - "Document struct/enum support"
+        - "Plan RED-GREEN-REFACTOR cycles"
+        - "Update STATUS.md with roadmap changes"
+
+      validation:
+        commands:
+          - "git diff roadmap-v3.155.yaml"
+          - "make status"
+        criteria:
+          - "Roadmap reflects v3.155.0 reality"
+          - "All tickets follow extreme TDD"
+
+      acceptance:
+        - "Roadmap updated and committed"
+        - "Team aligned on single-file approach"
+
+    - id: REAPER-102
+      title: "Design single-file architecture"
+      priority: HIGH
+      status: TODO
+      hours: 1
+      dependencies: [REAPER-101]
+
+      description: |
+        Design complete single-file architecture with clear sections.
+        Reference modules will be combined into logical sections.
+
+      tasks:
+        - "Define file structure (sections)"
+        - "Plan data structures (Process, DetectionRule, Config, etc.)"
+        - "Plan function organization"
+        - "Document architecture in ARCHITECTURE.md"
+
+      tdd_approach: DESIGN_FIRST
+
+      validation:
+        commands:
+          - "cat ARCHITECTURE.md"
+        criteria:
+          - "Clear section boundaries defined"
+          - "All structs and enums planned"
+          - "Function signatures documented"
+
+      acceptance:
+        - "ARCHITECTURE.md created"
+        - "Design reviewed for completeness"
+        - "Estimated LOC: 500-1000"
+
+    - id: REAPER-103
+      title: "RED: Write tests for Process struct"
+      priority: HIGH
+      status: TODO
+      hours: 0.5
+      dependencies: [REAPER-102]
+
+      description: |
+        RED phase: Write failing tests for Process struct before implementation.
+
+      tasks:
+        - "Create test_process_creation()"
+        - "Create test_process_fields()"
+        - "Create test_process_display()"
+        - "Verify tests fail (RED)"
+
+      tdd_phase: RED
+
+      validation:
+        commands:
+          - "ruchy test"
+        criteria:
+          - "Tests compile"
+          - "Tests FAIL (expected - no implementation yet)"
+
+      acceptance:
+        - "Tests written and failing"
+        - "Commit message: 'test(RED): Add Process struct tests'"
+
+    - id: REAPER-104
+      title: "GREEN: Implement Process struct"
+      priority: HIGH
+      status: TODO
+      hours: 0.5
+      dependencies: [REAPER-103]
+
+      description: |
+        GREEN phase: Implement Process struct to make tests pass.
+
+      tasks:
+        - "Define struct Process { pid, name, cpu_usage, memory_mb, status }"
+        - "Implement constructor/helper functions"
+        - "Run tests until GREEN"
+
+      tdd_phase: GREEN
+
+      implementation:
+        file: "src/main.ruchy"
+        section: "DATA STRUCTURES"
+        code: |
+          struct Process {
+              pid: i32,
+              name: String,
+              cpu_usage: f64,
+              memory_mb: i64,
+              cmdline: String,
+          }
+
+      validation:
+        commands:
+          - "ruchy test"
+          - "ruchy check src/main.ruchy"
+          - "ruchy lint src/main.ruchy"
+        criteria:
+          - "All tests PASS (GREEN)"
+          - "Zero lint violations"
+          - "Syntax valid"
+
+      acceptance:
+        - "Tests passing"
+        - "Commit message: 'feat(GREEN): Implement Process struct'"
+
+    - id: REAPER-105
+      title: "REFACTOR: Optimize Process struct"
+      priority: MEDIUM
+      status: TODO
+      hours: 0.25
+      dependencies: [REAPER-104]
+
+      description: |
+        REFACTOR phase: Improve Process implementation while keeping tests green.
+
+      tasks:
+        - "Add helper functions if needed"
+        - "Improve field naming if needed"
+        - "Add documentation comments"
+        - "Verify tests still GREEN"
+
+      tdd_phase: REFACTOR
+
+      validation:
+        commands:
+          - "ruchy test"
+          - "ruchy score src/main.ruchy"
+          - "make quality-quick"
+        criteria:
+          - "All tests still PASS"
+          - "Quality score improves"
+          - "Zero SATD violations"
+
+      acceptance:
+        - "Tests still passing"
+        - "Code improved"
+        - "Commit message: 'refactor: Improve Process struct design'"
+
+    - id: REAPER-106
+      title: "RED-GREEN-REFACTOR: Priority enum"
+      priority: HIGH
+      status: TODO
+      hours: 0.5
+      dependencies: [REAPER-105]
+
+      description: |
+        Complete TDD cycle for Priority enum (High, Medium, Low).
+
+      tasks:
+        - "RED: Write tests for Priority enum"
+        - "GREEN: Implement Priority enum"
+        - "REFACTOR: Add helper functions (as_str, etc.)"
+
+      tdd_phase: FULL_CYCLE
+
+      implementation:
+        code: |
+          enum Priority {
+              High,
+              Medium,
+              Low,
+          }
+
+      validation:
+        commands:
+          - "ruchy test"
+          - "make quality-quick"
+        criteria:
+          - "All tests pass"
+          - "Enum usable in pattern matching"
+
+      acceptance:
+        - "Complete TDD cycle"
+        - "Tests green"
+        - "3 commits (RED, GREEN, REFACTOR)"
+
+    - id: REAPER-107
+      title: "RED-GREEN-REFACTOR: ProcessStatus enum"
+      priority: HIGH
+      status: TODO
+      hours: 0.5
+      dependencies: [REAPER-106]
+
+      description: |
+        Complete TDD cycle for ProcessStatus enum.
+
+      implementation:
+        code: |
+          enum ProcessStatus {
+              Running,
+              Sleeping,
+              Stopped,
+              Zombie,
+          }
+
+      tdd_phase: FULL_CYCLE
+
+      acceptance:
+        - "Complete TDD cycle"
+        - "3 commits (RED, GREEN, REFACTOR)"
+
+    - id: REAPER-108
+      title: "RED-GREEN-REFACTOR: DetectionRule struct"
+      priority: HIGH
+      status: TODO
+      hours: 1
+      dependencies: [REAPER-106]
+
+      description: |
+        Complete TDD cycle for DetectionRule struct.
+
+      implementation:
+        code: |
+          struct DetectionRule {
+              name: String,
+              priority: Priority,
+              max_cpu_percent: f64,
+              max_memory_mb: i64,
+              name_pattern: String,
+              enabled: bool,
+          }
+
+      tdd_phase: FULL_CYCLE
+
+      validation:
+        commands:
+          - "ruchy test"
+          - "pmat analyze complexity --path ."
+        criteria:
+          - "Complexity < 10"
+          - "All tests pass"
+
+      acceptance:
+        - "Complete TDD cycle"
+        - "3 commits"
+
+    - id: REAPER-109
+      title: "RED-GREEN-REFACTOR: Config struct"
+      priority: MEDIUM
+      status: TODO
+      hours: 0.75
+      dependencies: [REAPER-108]
+
+      description: |
+        Complete TDD cycle for Config struct (application configuration).
+
+      implementation:
+        code: |
+          struct Config {
+              check_interval_secs: i64,
+              rules: [DetectionRule],
+              dry_run: bool,
+              log_file: String,
+          }
+
+      tdd_phase: FULL_CYCLE
+
+      acceptance:
+        - "Complete TDD cycle"
+        - "3 commits"
+
+    - id: REAPER-110
+      title: "Sprint 2 validation and merge"
+      priority: HIGH
+      status: TODO
+      hours: 0.5
+      dependencies: [REAPER-109]
+
+      description: |
+        Validate all Sprint 2 work meets quality gates.
+
+      tasks:
+        - "Run make quality-full"
+        - "Run make validate"
+        - "Verify all tests pass"
+        - "Check coverage >= 80%"
+        - "Update STATUS.md"
+
+      validation:
+        commands:
+          - "make quality-full"
+          - "make validate"
+          - "ruchy coverage src/main.ruchy"
+          - "pmat quality-gate"
+        criteria:
+          - "Quality score >= 0.95 (A+)"
+          - "Coverage >= 80%"
+          - "All quality gates pass"
+          - "Zero SATD violations"
+
+      acceptance:
+        - "All quality gates pass"
+        - "Sprint 2 complete"
+        - "Ready for Sprint 3"
+
+# ============================================================================
+# SPRINT 3: Scanner Implementation
+# ============================================================================
+sprint_3:
+  id: SPRINT-3
+  name: "Scanner - Process Enumeration"
+  status: PLANNED
+  duration: "1-2 days"
+  target_version: "v0.3.0"
+
+  goal: |
+    Implement process scanning functionality with extreme TDD.
+    Read /proc filesystem, parse process information.
+
+  tickets:
+    - id: REAPER-201
+      title: "RED-GREEN-REFACTOR: scan_processes() function"
+      priority: HIGH
+      hours: 2
+
+      description: |
+        Implement process scanning by reading /proc directory.
+
+      implementation:
+        signature: "fun scan_processes() -> [Process]"
+        approach: "Read /proc/[pid] directories, parse status files"
+
+      tdd_phase: FULL_CYCLE
+
+      validation:
+        - "Returns list of Process structs"
+        - "Handles /proc read errors gracefully"
+        - "Tests with mock /proc data"
+
+    - id: REAPER-202
+      title: "RED-GREEN-REFACTOR: parse_proc_status() function"
+      priority: HIGH
+      hours: 1.5
+
+      description: |
+        Parse /proc/[pid]/status file format.
+
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-203
+      title: "RED-GREEN-REFACTOR: get_process_cpu_usage() function"
+      priority: MEDIUM
+      hours: 1.5
+
+      description: |
+        Calculate CPU usage from /proc/[pid]/stat.
+
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-204
+      title: "Sprint 3 validation"
+      priority: HIGH
+      hours: 0.5
+
+      validation:
+        - "make quality-full"
+        - "Coverage >= 80%"
+        - "Mutation score >= 80%"
+
+# ============================================================================
+# SPRINT 4: Detector Implementation
+# ============================================================================
+sprint_4:
+  id: SPRINT-4
+  name: "Detector - Rogue Process Detection"
+  status: PLANNED
+  duration: "1-2 days"
+  target_version: "v0.4.0"
+
+  goal: |
+    Implement detection rules engine with extreme TDD.
+
+  tickets:
+    - id: REAPER-301
+      title: "RED-GREEN-REFACTOR: apply_rules() function"
+      priority: HIGH
+      hours: 2
+
+      description: |
+        Apply detection rules to process list.
+
+      implementation:
+        signature: "fun apply_rules(procs: [Process], rules: [DetectionRule]) -> [Process]"
+
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-302
+      title: "RED-GREEN-REFACTOR: detect_cpu_hog() function"
+      priority: HIGH
+      hours: 1
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-303
+      title: "RED-GREEN-REFACTOR: detect_memory_hog() function"
+      priority: HIGH
+      hours: 1
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-304
+      title: "RED-GREEN-REFACTOR: match_name_pattern() function"
+      priority: MEDIUM
+      hours: 1
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-305
+      title: "Sprint 4 validation"
+      priority: HIGH
+      hours: 0.5
+
+# ============================================================================
+# SPRINT 5: Terminator Implementation
+# ============================================================================
+sprint_5:
+  id: SPRINT-5
+  name: "Terminator - Safe Process Termination"
+  status: PLANNED
+  duration: "1 day"
+  target_version: "v0.5.0"
+
+  tickets:
+    - id: REAPER-401
+      title: "RED-GREEN-REFACTOR: terminate_process() function"
+      priority: HIGH
+      hours: 2
+
+      implementation:
+        signature: "fun terminate_process(pid: i32, grace_period_secs: i64) -> bool"
+        approach: "SIGTERM then SIGKILL after grace period"
+
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-402
+      title: "RED-GREEN-REFACTOR: safe_kill_with_grace() function"
+      priority: HIGH
+      hours: 1.5
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-403
+      title: "Sprint 5 validation"
+      priority: HIGH
+      hours: 0.5
+
+# ============================================================================
+# SPRINT 6: CLI & Main Loop
+# ============================================================================
+sprint_6:
+  id: SPRINT-6
+  name: "CLI - Command Line Interface"
+  status: PLANNED
+  duration: "1-2 days"
+  target_version: "v0.6.0"
+
+  tickets:
+    - id: REAPER-501
+      title: "RED-GREEN-REFACTOR: parse_args() function"
+      priority: HIGH
+      hours: 1.5
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-502
+      title: "RED-GREEN-REFACTOR: main() daemon loop"
+      priority: HIGH
+      hours: 2
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-503
+      title: "RED-GREEN-REFACTOR: load_config() function"
+      priority: MEDIUM
+      hours: 1
+      tdd_phase: FULL_CYCLE
+
+    - id: REAPER-504
+      title: "Sprint 6 validation"
+      priority: HIGH
+      hours: 0.5
+
+# ============================================================================
+# SPRINT 7: Quality & Testing
+# ============================================================================
+sprint_7:
+  id: SPRINT-7
+  name: "Extreme Quality Validation"
+  status: PLANNED
+  duration: "1-2 days"
+  target_version: "v0.9.0"
+
+  goal: |
+    Achieve extreme quality standards:
+    - 90%+ coverage
+    - 80%+ mutation score
+    - A+ quality score
+    - Property-based testing
+
+  tickets:
+    - id: REAPER-601
+      title: "Achieve 90%+ test coverage"
+      priority: HIGH
+      hours: 3
+
+    - id: REAPER-602
+      title: "Achieve 80%+ mutation score"
+      priority: HIGH
+      hours: 3
+
+    - id: REAPER-603
+      title: "Add property-based tests"
+      priority: MEDIUM
+      hours: 2
+
+    - id: REAPER-604
+      title: "Achieve A+ quality score (0.95+)"
+      priority: HIGH
+      hours: 2
+
+    - id: REAPER-605
+      title: "All 15 Ruchy tools validation"
+      priority: HIGH
+      hours: 1
+
+# ============================================================================
+# SPRINT 8: Publication & Documentation
+# ============================================================================
+sprint_8:
+  id: SPRINT-8
+  name: "Publication to crates.io"
+  status: PLANNED
+  duration: "1 day"
+  target_version: "v1.0.0"
+
+  tickets:
+    - id: REAPER-701
+      title: "Final quality gate validation"
+      priority: HIGH
+      hours: 1
+
+    - id: REAPER-702
+      title: "Update README.md for publication"
+      priority: HIGH
+      hours: 1
+
+    - id: REAPER-703
+      title: "Publish to crates.io"
+      priority: HIGH
+      hours: 0.5
+
+    - id: REAPER-704
+      title: "Create release announcement"
+      priority: MEDIUM
+      hours: 0.5
+
+# ============================================================================
+# SUMMARY
+# ============================================================================
+summary:
+  total_sprints: 8
+  estimated_days: 10-14
+  current_sprint: 2
+  next_ticket: REAPER-101
+
+  blockers_resolved:
+    - "✅ Structs now supported (v3.155.0)"
+    - "✅ Enums now supported (v3.155.0)"
+    - "⚠️ Multi-file still blocked (using single-file workaround)"
+
+  quality_commitment:
+    - "RED-GREEN-REFACTOR for every feature"
+    - "80%+ coverage minimum, 90% target"
+    - "80%+ mutation score"
+    - "A+ quality grade (0.95+)"
+    - "Zero SATD tolerance"
+    - "All 15 Ruchy tools validation"
+
+  deliverables:
+    - "Working reaper binary in PATH"
+    - "Published to crates.io"
+    - "Complete documentation"
+    - "Reference implementation for Ruchy v3.155.0"
