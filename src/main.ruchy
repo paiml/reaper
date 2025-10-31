@@ -1591,8 +1591,19 @@ fun detect_memory_hog(proc: Process, rule: DetectionRule) -> bool {
 /// # Returns
 /// true if pattern matches proc.name (case-insensitive substring match)
 fun match_name_pattern(proc: Process, pattern: String) -> bool {
-    // RED phase - intentionally returns false
-    false
+    // GREEN phase - implement pattern matching
+
+    // Empty pattern matches all processes
+    if pattern.len() == 0 {
+        return true;
+    }
+
+    // Convert both to lowercase for case-insensitive matching
+    let proc_name_lower = proc.name.to_lowercase();
+    let pattern_lower = pattern.to_lowercase();
+
+    // Check if pattern is a substring of process name
+    proc_name_lower.contains(pattern_lower)
 }
 
 // ============================================================================
@@ -2716,8 +2727,8 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-304 RED PHASE");
-    println("Current: Detector - Writing tests for match_name_pattern()");
+    println("Status: SPRINT 4 - REAPER-304 GREEN PHASE");
+    println("Current: Detector - Implementing match_name_pattern() logic");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
@@ -2725,20 +2736,19 @@ fun main() {
     println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-302: detect_cpu_hog() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-303: detect_memory_hog() (RED-GREEN-REFACTOR complete)");
+    println("  ✅ REAPER-304 RED: match_name_pattern() tests (5 tests)");
     println("");
     println("Current TDD Cycle (match_name_pattern):");
-    println("  [X] RED: Write failing tests");
-    println("  [ ] GREEN: Make tests pass");
+    println("  ✅ RED: Write failing tests");
+    println("  [X] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests Added: 5 match_name_pattern tests (expect 4 FAILURES)");
-    println("  - test_match_name_pattern_empty() [WILL FAIL]");
-    println("  - test_match_name_pattern_exact() [WILL FAIL]");
-    println("  - test_match_name_pattern_partial() [WILL FAIL]");
-    println("  - test_match_name_pattern_case_insensitive() [WILL FAIL]");
-    println("  - test_match_name_pattern_no_match()");
+    println("Implementation:");
+    println("  - Empty pattern returns true (match all)");
+    println("  - Convert to lowercase for case-insensitive matching");
+    println("  - Use contains() for substring matching");
     println("");
-    println("Total Tests: 70 (65 passing from previous, 5 new)");
-    println("Next: Run 'ruchy test' - expect 4 FAILURES (RED phase)");
+    println("Total Tests: 70 (expect ALL PASSING)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
     println("========================================");
 }
