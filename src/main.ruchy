@@ -2,8 +2,8 @@
 // Pure Ruchy v3.155.0 Implementation
 // Single-file architecture with extreme TDD
 //
-// TICKET: REAPER-106 (REFACTOR phase) - Priority enum documentation
-// Status: Improving Priority enum quality (keeping tests GREEN)
+// TICKET: REAPER-108 (RED phase) - DetectionRule struct tests
+// Status: Writing failing tests for DetectionRule (RED phase of TDD)
 //
 // This tool automatically detects and terminates rogue processes that consume
 // excessive system resources. Based on real production incident (2025-10-31)
@@ -127,6 +127,18 @@ struct Process {
     cpu_usage: f64,
     memory_mb: i64,
     status: ProcessStatus,
+}
+
+/// DetectionRule defines criteria for identifying rogue processes.
+/// Combines resource thresholds with pattern matching.
+struct DetectionRule {
+    name: String,
+    priority: Priority,
+    max_cpu_percent: f64,
+    max_memory_mb: i64,
+    name_pattern: String,
+    cmdline_pattern: String,
+    enabled: bool,
 }
 
 // ============================================================================
@@ -401,6 +413,45 @@ fun is_higher_priority(p1: Priority, p2: Priority) -> bool {
     v1 > v2
 }
 
+/// Creates a new DetectionRule instance.
+/// Returns a DetectionRule with the given values.
+fun new_detection_rule(name: String, priority: Priority, max_cpu: f64, max_mem: i64, name_pattern: String, cmdline_pattern: String, enabled: bool) -> DetectionRule {
+    // TODO: Implement validation in GREEN phase
+    DetectionRule {
+        name: name,
+        priority: priority,
+        max_cpu_percent: max_cpu,
+        max_memory_mb: max_mem,
+        name_pattern: name_pattern,
+        cmdline_pattern: cmdline_pattern,
+        enabled: enabled,
+    }
+}
+
+/// Validates that a DetectionRule has valid field values.
+/// Returns true if rule is valid, false otherwise.
+fun is_valid_rule(rule: DetectionRule) -> bool {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    false  // Placeholder - always returns false for RED phase
+}
+
+/// Checks if a process matches this detection rule.
+/// Returns true if the process should be flagged by this rule.
+fun rule_matches_process(rule: DetectionRule, proc: Process) -> bool {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    false  // Placeholder - always returns false for RED phase
+}
+
+/// Formats a DetectionRule as a human-readable string.
+/// Returns a formatted string representation.
+fun format_rule(rule: DetectionRule) -> String {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    ""  // Placeholder - returns empty string for RED phase
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -657,6 +708,232 @@ fun test_priority_equal() {
 }
 
 // ============================================================================
+// TESTS - DetectionRule Struct (expect these to FAIL in RED phase)
+// ============================================================================
+
+/// Test DetectionRule creation and field access
+#[test]
+fun test_detection_rule_creation() {
+    let rule = new_detection_rule(
+        "CPU Hog",
+        Priority::High,
+        80.0,
+        1024,
+        "python",
+        "",
+        true
+    );
+
+    assert(rule.name == "CPU Hog", "Rule name should be set");
+    assert(rule.max_cpu_percent == 80.0, "CPU threshold should be set");
+    assert(rule.max_memory_mb == 1024, "Memory threshold should be set");
+    assert(rule.name_pattern == "python", "Name pattern should be set");
+    assert(rule.enabled == true, "Enabled flag should be set");
+}
+
+/// Test is_valid_rule() accepts valid rules
+#[test]
+fun test_valid_detection_rule() {
+    let valid_rule = new_detection_rule(
+        "Valid Rule",
+        Priority::Medium,
+        90.0,
+        2048,
+        "",
+        "",
+        true
+    );
+
+    // This will FAIL in RED phase (is_valid_rule returns false)
+    assert(is_valid_rule(valid_rule), "Valid rule should pass validation");
+}
+
+/// Test is_valid_rule() rejects rules with invalid CPU threshold
+#[test]
+fun test_invalid_cpu_threshold() {
+    let invalid_rule = new_detection_rule(
+        "Bad CPU",
+        Priority::Medium,
+        150.0,  // Invalid: > 100%
+        1024,
+        "",
+        "",
+        true
+    );
+
+    // This will FAIL in RED phase
+    assert(!is_valid_rule(invalid_rule), "Rule with CPU > 100% should be invalid");
+}
+
+/// Test is_valid_rule() rejects rules with negative memory
+#[test]
+fun test_invalid_memory_threshold() {
+    let invalid_rule = new_detection_rule(
+        "Bad Memory",
+        Priority::Medium,
+        50.0,
+        -100,  // Invalid: negative memory
+        "",
+        "",
+        true
+    );
+
+    // This will FAIL in RED phase
+    assert(!is_valid_rule(invalid_rule), "Rule with negative memory should be invalid");
+}
+
+/// Test rule_matches_process() for CPU threshold
+#[test]
+fun test_rule_matches_cpu_hog() {
+    let rule = new_detection_rule(
+        "CPU Hog",
+        Priority::High,
+        80.0,  // 80% CPU threshold
+        0,     // No memory limit (0 = disabled)
+        "",    // No name pattern
+        "",    // No cmdline pattern
+        true
+    );
+
+    let cpu_hog = new_process(
+        1234,
+        "cpu_hog",
+        "/usr/bin/hog",
+        95.0,  // 95% CPU - exceeds threshold
+        512,
+        ProcessStatus::Running
+    );
+
+    // This will FAIL in RED phase (rule_matches_process returns false)
+    assert(rule_matches_process(rule, cpu_hog), "Process exceeding CPU threshold should match");
+}
+
+/// Test rule_matches_process() for memory threshold
+#[test]
+fun test_rule_matches_memory_hog() {
+    let rule = new_detection_rule(
+        "Memory Hog",
+        Priority::High,
+        0.0,    // No CPU limit
+        1024,   // 1GB memory threshold
+        "",
+        "",
+        true
+    );
+
+    let memory_hog = new_process(
+        1234,
+        "memory_hog",
+        "/usr/bin/hog",
+        50.0,
+        2048,  // 2GB - exceeds threshold
+        ProcessStatus::Running
+    );
+
+    // This will FAIL in RED phase
+    assert(rule_matches_process(rule, memory_hog), "Process exceeding memory threshold should match");
+}
+
+/// Test rule_matches_process() for name pattern
+#[test]
+fun test_rule_matches_name_pattern() {
+    let rule = new_detection_rule(
+        "Python Killer",
+        Priority::Medium,
+        0.0,
+        0,
+        "python",  // Match processes with "python" in name
+        "",
+        true
+    );
+
+    let python_proc = new_process(
+        1234,
+        "python3.9",
+        "/usr/bin/python3.9",
+        50.0,
+        512,
+        ProcessStatus::Running
+    );
+
+    // This will FAIL in RED phase
+    assert(rule_matches_process(rule, python_proc), "Process with matching name should match");
+}
+
+/// Test rule_matches_process() with disabled rule
+#[test]
+fun test_disabled_rule_no_match() {
+    let disabled_rule = new_detection_rule(
+        "Disabled",
+        Priority::Low,
+        50.0,
+        1024,
+        "",
+        "",
+        false  // Rule is disabled
+    );
+
+    let proc = new_process(
+        1234,
+        "test",
+        "/usr/bin/test",
+        95.0,  // Exceeds threshold but rule is disabled
+        512,
+        ProcessStatus::Running
+    );
+
+    // This will FAIL in RED phase
+    assert(!rule_matches_process(disabled_rule, proc), "Disabled rule should not match any process");
+}
+
+/// Test format_rule() returns non-empty string
+#[test]
+fun test_format_detection_rule() {
+    let rule = new_detection_rule(
+        "Test Rule",
+        Priority::High,
+        80.0,
+        1024,
+        "test",
+        "",
+        true
+    );
+
+    let formatted = format_rule(rule);
+
+    // This will FAIL in RED phase (format_rule returns empty string)
+    assert(formatted != "", "Formatted rule should not be empty");
+}
+
+/// Test rule with zero thresholds (disabled thresholds)
+#[test]
+fun test_rule_zero_thresholds() {
+    let rule = new_detection_rule(
+        "Pattern Only",
+        Priority::Low,
+        0.0,  // 0 = no CPU limit
+        0,    // 0 = no memory limit
+        "suspicious",
+        "",
+        true
+    );
+
+    // Zero thresholds should be valid (means threshold is disabled)
+    let proc = new_process(
+        1234,
+        "normal",
+        "/usr/bin/normal",
+        5.0,
+        100,
+        ProcessStatus::Running
+    );
+
+    // Should not match based on thresholds alone
+    assert(rule.max_cpu_percent == 0.0, "Zero CPU threshold should be allowed");
+    assert(rule.max_memory_mb == 0, "Zero memory threshold should be allowed");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -668,25 +945,31 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: REAPER-106 REFACTOR PHASE");
-    println("Current: Improving Priority enum documentation");
+    println("Status: REAPER-108 RED PHASE");
+    println("Current: Writing tests for DetectionRule struct");
     println("");
     println("Completed Cycles:");
     println("  ✅ Process struct (full RED-GREEN-REFACTOR)");
-    println("  ✅ Priority enum (RED-GREEN, REFACTOR in progress)");
+    println("  ✅ Priority enum (full RED-GREEN-REFACTOR)");
     println("");
-    println("Current TDD Cycle (Priority enum):");
-    println("  [✓] RED: Write failing tests");
-    println("  [✓] GREEN: Make tests pass");
-    println("  [X] REFACTOR: Improve code quality");
+    println("Current TDD Cycle (DetectionRule struct):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Improvements:");
-    println("  - Comprehensive Priority enum documentation");
-    println("  - Full doc comments for all helper functions");
-    println("  - Usage examples and use cases");
-    println("  - Enhanced test documentation");
+    println("Tests Added: 10 DetectionRule tests (expect FAILURES)");
+    println("  - test_detection_rule_creation()");
+    println("  - test_valid_detection_rule()");
+    println("  - test_invalid_cpu_threshold()");
+    println("  - test_invalid_memory_threshold()");
+    println("  - test_rule_matches_cpu_hog()");
+    println("  - test_rule_matches_memory_hog()");
+    println("  - test_rule_matches_name_pattern()");
+    println("  - test_disabled_rule_no_match()");
+    println("  - test_format_detection_rule()");
+    println("  - test_rule_zero_thresholds()");
     println("");
-    println("Tests: 17 tests total (all passing)");
-    println("Next: Validate quality and complete cycle");
+    println("Total Tests: 27 (17 passing, 10 new failing)");
+    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
