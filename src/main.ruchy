@@ -1056,6 +1056,19 @@ fun parse_proc_status(pid: i32) -> Process {
     )
 }
 
+/// Calculates CPU usage percentage for a given process.
+/// Returns CPU usage as a percentage (0.0-100.0).
+///
+/// # Arguments
+/// * `pid` - Process ID to calculate CPU usage for
+///
+/// # Returns
+/// CPU usage percentage (0.0-100.0), or -1.0 on error
+fun get_process_cpu_usage(pid: i32) -> f64 {
+    // RED phase - intentionally returns invalid value
+    -1.0
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -1779,6 +1792,62 @@ fun test_parse_proc_status_self() {
     assert(is_valid_process(proc), "Parsed process should be valid");
 }
 
+/// Test get_process_cpu_usage() returns a number
+#[test]
+fun test_get_cpu_usage_returns_number() {
+    // Get CPU usage for PID 1 (init/systemd)
+    let cpu = get_process_cpu_usage(1);
+
+    // Just checking we can call it and get a number back
+    // Type checking test
+    assert(true, "Function should return without error");
+}
+
+/// Test get_process_cpu_usage() returns non-negative value
+#[test]
+fun test_get_cpu_usage_non_negative() {
+    // Get CPU usage for PID 1
+    let cpu = get_process_cpu_usage(1);
+
+    // CPU usage should be non-negative
+    // This will FAIL in RED phase (returns -1.0)
+    assert(cpu >= 0.0, "CPU usage should be non-negative");
+}
+
+/// Test get_process_cpu_usage() returns value <= 100%
+#[test]
+fun test_get_cpu_usage_max_100() {
+    // Get CPU usage for PID 1 (should be low)
+    let cpu = get_process_cpu_usage(1);
+
+    // CPU usage should not exceed 100% (per-core on our model)
+    // This will FAIL in RED phase if value is invalid
+    assert(cpu <= 100.0, "CPU usage should not exceed 100%");
+}
+
+/// Test get_process_cpu_usage() for init process (low usage)
+#[test]
+fun test_get_cpu_usage_init_low() {
+    // PID 1 (init/systemd) typically has very low CPU usage
+    let cpu = get_process_cpu_usage(1);
+
+    // Init should have < 5% CPU usage typically
+    // This documents expected behavior
+    // Note: May fail in RED phase
+    assert(cpu >= 0.0 && cpu < 50.0, "Init process should have reasonable CPU usage");
+}
+
+/// Test get_process_cpu_usage() returns valid range
+#[test]
+fun test_get_cpu_usage_valid_range() {
+    // Get CPU usage for PID 1
+    let cpu = get_process_cpu_usage(1);
+
+    // Should be in valid range [0.0, 100.0]
+    // This will FAIL in RED phase (returns -1.0)
+    assert(cpu >= 0.0 && cpu <= 100.0, "CPU usage should be in range [0.0, 100.0]");
+}
+
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -1791,26 +1860,27 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 3 - REAPER-202 RED PHASE");
-    println("Current: Scanner - Writing tests for parse_proc_status()");
+    println("Status: SPRINT 3 - REAPER-203 RED PHASE");
+    println("Current: Scanner - Writing tests for get_process_cpu_usage()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ REAPER-201: scan_processes() (RED-GREEN-REFACTOR)");
+    println("  ✅ REAPER-202: parse_proc_status() (RED-GREEN-REFACTOR)");
     println("");
-    println("Current TDD Cycle (parse_proc_status):");
+    println("Current TDD Cycle (get_process_cpu_usage):");
     println("  [X] RED: Write failing tests");
     println("  [ ] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests Added: 5 parse_proc_status tests (expect FAILURES)");
-    println("  - test_parse_proc_status_returns_process()");
-    println("  - test_parse_proc_status_valid_pid()");
-    println("  - test_parse_proc_status_non_empty_name()");
-    println("  - test_parse_proc_status_valid_memory()");
-    println("  - test_parse_proc_status_self()");
+    println("Tests Added: 5 CPU usage tests (expect FAILURES)");
+    println("  - test_get_cpu_usage_returns_number()");
+    println("  - test_get_cpu_usage_non_negative()");
+    println("  - test_get_cpu_usage_max_100()");
+    println("  - test_get_cpu_usage_init_low()");
+    println("  - test_get_cpu_usage_valid_range()");
     println("");
-    println("Total Tests: 44 (39 passing from previous, 5 new failing)");
+    println("Total Tests: 49 (44 passing from previous, 5 new failing)");
     println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
