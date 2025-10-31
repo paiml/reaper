@@ -1964,8 +1964,161 @@ fun terminate_process(pid: i32, grace_period: i64) -> ActionResult {
     ActionResult::Success
 }
 
-/// Safe termination wrapper for Process struct with grace period.
-/// GREEN phase - minimal implementation to pass tests.
+/// High-level wrapper for safely terminating a Process with grace period.
+///
+/// This function provides a simplified interface to terminate_process() by working
+/// directly with Process structs (as used by the detector and main loop) and returning
+/// a simple bool instead of ActionResult.
+///
+/// # Purpose
+///
+/// - **Convenience**: Takes Process struct instead of raw PID
+/// - **Simplification**: Returns bool (true/false) instead of ActionResult enum
+/// - **Integration**: Designed for use in main loop and detector workflows
+/// - **Abstraction**: Hides ActionResult complexity from higher-level code
+///
+/// # Arguments
+///
+/// * `proc` - Process struct to terminate (contains PID, name, CPU, memory, etc.)
+/// * `grace_period` - Seconds to wait after SIGTERM before sending SIGKILL
+///
+/// # Returns
+///
+/// * `true` - Process was successfully terminated
+/// * `false` - Termination failed for any reason (permission, not found, timeout, etc.)
+///
+/// # Algorithm
+///
+/// 1. Extract PID from Process struct (`proc.pid`)
+/// 2. Call `terminate_process(pid, grace_period)`
+/// 3. Convert ActionResult to bool:
+///    - `ActionResult::Success` → `true`
+///    - All other results → `false`
+///
+/// # When to Use
+///
+/// Use `safe_kill_with_grace()` when:
+/// - You have a Process struct from the scanner/detector
+/// - You want a simple bool result (don't care about specific failure reasons)
+/// - You're in the main loop or detector (working with Process structs)
+///
+/// Use `terminate_process()` when:
+/// - You only have a PID (not a full Process struct)
+/// - You need detailed failure information (ActionResult variants)
+/// - You're implementing lower-level termination logic
+///
+/// # Grace Period Semantics
+///
+/// Same as `terminate_process()`:
+/// - **0 seconds**: Immediate SIGKILL (no graceful shutdown)
+/// - **>0 seconds**: SIGTERM first, wait, then SIGKILL if needed
+/// - **Recommended**: 5-10 seconds for most processes
+///
+/// # ActionResult Mapping
+///
+/// This function simplifies all ActionResult variants to bool:
+///
+/// | ActionResult | Bool | Meaning |
+/// |--------------|------|---------|
+/// | Success | true | Process terminated successfully |
+/// | AlreadyDead | false | Process was already dead |
+/// | PermissionDenied | false | Insufficient permissions |
+/// | NotFound | false | Process not found |
+/// | TimedOut | false | Termination timed out |
+/// | Failed | false | General failure |
+///
+/// **Note**: AlreadyDead could arguably return true (goal achieved), but we return
+/// false to indicate the function didn't actually terminate the process (it was
+/// already dead). Callers should check process state before calling if they need
+/// to distinguish this case.
+///
+/// # Edge Cases
+///
+/// 1. **Invalid PID in Process struct**: If `proc.pid <= 0`, terminate_process()
+///    returns Failed, which maps to false.
+///
+/// 2. **Protected PIDs**: If `proc.pid == 1` (init/systemd), terminate_process()
+///    returns PermissionDenied, which maps to false.
+///
+/// 3. **Already terminated**: If process died between detection and termination,
+///    terminate_process() returns AlreadyDead, which maps to false.
+///
+/// 4. **Zombie processes**: terminate_process() handles zombies, but they may
+///    return false if already reaped.
+///
+/// 5. **Permission denied**: Insufficient privileges map to false.
+///
+/// # Usage Examples
+///
+/// ```ruchy
+/// // Example 1: Simple usage in main loop
+/// let rogues = detect_rogues(processes, rules);
+/// for rogue in rogues {
+///     if safe_kill_with_grace(rogue, 5) {
+///         println("Terminated: {}", rogue.name);
+///     } else {
+///         println("Failed to terminate: {}", rogue.name);
+///     }
+/// }
+/// ```
+///
+/// ```ruchy
+/// // Example 2: With zero grace period (immediate kill)
+/// let cpu_hog = Process { pid: 1234, name: "cpu_hog", ... };
+/// if safe_kill_with_grace(cpu_hog, 0) {
+///     println("Immediately killed CPU hog");
+/// }
+/// ```
+///
+/// ```ruchy
+/// // Example 3: Different grace periods by process type
+/// for proc in rogues {
+///     let grace = if proc.name.contains("critical") {
+///         10  // Critical processes get more time
+///     } else {
+///         3   // Others get less time
+///     };
+///     safe_kill_with_grace(proc, grace);
+/// }
+/// ```
+///
+/// # Performance
+///
+/// - **Time Complexity**: O(grace_period) - same as terminate_process()
+/// - **Space Complexity**: O(1) - single PID extraction, one function call
+/// - **Overhead**: Minimal - just PID extraction + enum match
+///
+/// # Integration with Detector
+///
+/// The detector returns `[Process]` (list of rogue processes). This function is
+/// designed to work seamlessly with that output:
+///
+/// ```ruchy
+/// let rogues = apply_rules(processes, rules);
+/// for rogue in rogues {
+///     log_detection(rogue);
+///     if safe_kill_with_grace(rogue, config.grace_period) {
+///         log_termination(rogue, "success");
+///     } else {
+///         log_termination(rogue, "failed");
+///     }
+/// }
+/// ```
+///
+/// # Testing
+///
+/// Covered by 5 tests:
+/// - test_safe_kill_returns_bool() - Type checking
+/// - test_safe_kill_success() - Successful termination
+/// - test_safe_kill_with_valid_process() - Valid process handling
+/// - test_safe_kill_zero_grace() - Zero grace period
+/// - test_safe_kill_long_grace() - Longer grace period
+///
+/// # See Also
+///
+/// - `terminate_process()` - Lower-level PID-based termination
+/// - `apply_rules()` - Detector that produces Process structs
+/// - `ActionResult` - Detailed termination results
 fun safe_kill_with_grace(proc: Process, grace_period: i64) -> bool {
     // Extract PID from Process struct
     let pid = proc.pid;
@@ -3234,8 +3387,8 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 5 - REAPER-402 GREEN PHASE");
-    println("Current: Terminator - Implementing safe_kill_with_grace()");
+    println("Status: SPRINT 5 - REAPER-402 REFACTOR PHASE");
+    println("Current: Terminator - Documenting safe_kill_with_grace()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (5 complete)");
@@ -3243,19 +3396,23 @@ fun main() {
     println("  ✅ Sprint 4: Detector functions (4 complete)");
     println("  ✅ REAPER-401: terminate_process() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-402 RED: safe_kill_with_grace() tests");
+    println("  ✅ REAPER-402 GREEN: safe_kill_with_grace() implementation");
     println("");
     println("Current TDD Cycle (safe_kill_with_grace):");
     println("  ✅ RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code quality");
+    println("  ✅ GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("GREEN Phase Implementation:");
-    println("  - Extracts PID from Process struct");
-    println("  - Calls terminate_process(pid, grace_period)");
-    println("  - Converts ActionResult to bool (Success → true)");
-    println("  - Minimal wrapper around terminate_process()");
+    println("Documentation Added (~155 lines):");
+    println("  - Purpose & design rationale (wrapper for Process structs)");
+    println("  - When to use safe_kill vs terminate_process");
+    println("  - ActionResult → bool mapping table");
+    println("  - 5 edge cases (invalid PID, protected PIDs, already dead, etc.)");
+    println("  - 3 usage examples (main loop, zero grace, dynamic grace)");
+    println("  - Integration with detector workflow");
+    println("  - Performance: O(grace_period) time, O(1) space");
     println("");
-    println("Total Tests: 80 (expect ALL PASSING - GREEN phase)");
-    println("Next: Run 'ruchy test' - expect SUCCESS");
+    println("Total Tests: 80 (expect ALL PASSING)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
     println("========================================");
 }
