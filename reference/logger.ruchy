@@ -1,0 +1,28 @@
+// Logger Module - Audit Trail Logging
+// TICKET: REAPER-003
+// Purpose: Structured JSON logging of all termination actions
+
+use crate::scanner::Process;
+
+/// Logger for audit trail
+pub struct Logger {
+    pub log_path: String,
+}
+
+/// Create new logger
+pub fun new_logger(log_path: String) -> Logger {
+    Logger { log_path }
+}
+
+/// Log a process termination action
+/// TODO: Implementation in Sprint 4 (REAPER-019)
+pub fun log_kill(logger: &Logger, process: &Process, rule: &str) -> bool {
+    // TODO: Write structured JSON to log file
+    true
+}
+
+/// Log a scan action
+/// TODO: Implementation in Sprint 4
+pub fun log_scan(logger: &Logger, process_count: u32, rogue_count: u32) -> bool {
+    true
+}

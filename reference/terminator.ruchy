@@ -1,0 +1,33 @@
+// Terminator Module - Safe Process Termination
+// TICKET: REAPER-003
+// Purpose: Safely terminate processes with SIGTERM → SIGKILL escalation
+
+use crate::scanner::Process;
+use crate::config::Config;
+
+/// Terminator for safe process killing
+pub struct Terminator {
+    pub config: Config,
+}
+
+/// Create new terminator
+pub fun new_terminator(config: Config) -> Terminator {
+    Terminator { config }
+}
+
+/// Safely kill a process
+/// TODO: Implementation in Sprint 4 (REAPER-017)
+pub fun kill_process(terminator: &Terminator, process: &Process) -> bool {
+    if terminator.config.dry_run {
+        return true;  // Don't actually kill in dry-run mode
+    }
+
+    // TODO: Implement SIGTERM → SIGKILL escalation
+    false
+}
+
+/// Check if process is safe to kill
+/// TODO: Implementation in Sprint 4 (REAPER-016)
+pub fun is_safe_to_kill(process: &Process) -> bool {
+    process.pid >= 1000  // Don't kill system processes
+}

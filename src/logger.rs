@@ -1,0 +1,1 @@
+use crate :: scanner :: Process ; pub struct Logger { pub log_path : String , } pub fn new_logger (log_path : String) -> Logger { Logger { log_path : log_path , } } pub fn log_kill (logger : & Logger , process : & Process , rule : & str) -> bool { true } pub fn log_scan (logger : & Logger , process_count : u32 , rogue_count : u32) -> bool { true } fn main () { }

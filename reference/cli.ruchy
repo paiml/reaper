@@ -1,0 +1,32 @@
+// CLI Module - Command-Line Interface
+// TICKET: REAPER-003
+// Purpose: Parse arguments and execute commands
+
+/// CLI command variants
+pub enum Command {
+    Scan,
+    Status,
+}
+
+/// Parse command-line arguments
+/// TODO: Implementation in Sprint 5 (REAPER-020)
+pub fun parse_args() -> Command {
+    Command::Scan  // Default command for now
+}
+
+/// Execute the parsed command
+/// TODO: Implementation in Sprint 5 (REAPER-021, REAPER-022)
+pub fun execute(command: Command) -> bool {
+    println("Reaper v0.1.0 - Module structure initialized");
+    println("All modules compiled successfully!");
+    true
+}
+
+/// Display scan results
+/// TODO: Implementation in Sprint 5 (REAPER-023)
+pub fun display_results(critical: u32, high: u32, low: u32) {
+    println("Rogue processes detected:");
+    println("  Critical: {}", critical);
+    println("  High: {}", high);
+    println("  Low: {}", low);
+}

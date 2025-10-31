@@ -1,14 +1,33 @@
-// Ruchy main program
-// This file will be automatically transpiled to main.rs during cargo build
+// Reaper - Rogue Process Watcher
+// TICKET: REAPER-003 - Minimal version due to Ruchy limitations
+// See BLOCKED.md for details on language limitations
+
+// Note: Ruchy doesn't yet support:
+// - pub struct (Issue #106)
+// - pub enum (Issue #106)
+// - Separate module files (Issue #106)
+// This is a minimal scaffold until language features are added
 
 fun main() {
-    println("Hello, Ruchy!");
-
-    // Example: Using variables
-    let name = "World";
-    println(f"Hello, {name}!");
-
-    // Example: Using collections
-    let numbers = [1, 2, 3, 4, 5];
-    println(f"Numbers: {numbers:?}");
+    println("========================================");
+    println("Reaper v0.1.0 - Rogue Process Watcher");
+    println("Pure Ruchy Showcase CLI Tool");
+    println("========================================");
+    println("");
+    println("Project Status: BLOCKED");
+    println("Waiting for Ruchy language features:");
+    println("  - Multi-file module support (Issue #106)");
+    println("  - pub struct support");
+    println("  - pub enum support");
+    println("");
+    println("Current Capabilities:");
+    println("  - Basic Ruchy syntax");
+    println("  - Function definitions");
+    println("  - String and numeric types");
+    println("");
+    println("Next Steps:");
+    println("  1. Monitor github.com/paiml/ruchy/issues/106");
+    println("  2. Update when language features available");
+    println("  3. Implement full specification");
+    println("========================================");
 }

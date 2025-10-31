@@ -1,0 +1,48 @@
+// Detector Module - Rogue Process Detection Rules
+// TICKET: REAPER-003
+// Purpose: Evaluate processes against configured detection rules
+
+use crate::scanner::Process;
+use crate::config::Config;
+
+/// Rule priority levels
+pub enum Priority {
+    Critical,
+    High,
+    Low,
+}
+
+/// Rule match result
+pub struct RuleMatch {
+    pub rule_name: String,
+    pub reason: String,
+}
+
+/// Detection engine
+pub struct Detector {
+    pub config: Config,
+}
+
+/// Create new detector
+pub fun new_detector(config: Config) -> Detector {
+    Detector { config }
+}
+
+/// Evaluate all rules against a process
+/// TODO: Implementation in Sprint 3 (REAPER-015)
+pub fun evaluate(detector: &Detector, process: &Process) -> bool {
+    // Returns true if process is rogue
+    false
+}
+
+/// Detect infinite loop processes
+/// TODO: Implementation in Sprint 3 (REAPER-011)
+pub fun detect_infinite_loop(process: &Process) -> bool {
+    process.cpu_percent > 90.0 && process.age_seconds > 300
+}
+
+/// Detect hung test processes
+/// TODO: Implementation in Sprint 3 (REAPER-012)
+pub fun detect_hung_test(process: &Process) -> bool {
+    false
+}

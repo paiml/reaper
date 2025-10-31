@@ -1,0 +1,31 @@
+// Config Module - TOML Configuration Loading
+// TICKET: REAPER-003
+// Purpose: Load and validate configuration
+
+/// Main configuration structure
+pub struct Config {
+    pub scan_interval_seconds: u64,
+    pub dry_run: bool,
+    pub min_pid: u32,
+}
+
+/// Create default configuration
+pub fun default_config() -> Config {
+    Config {
+        scan_interval_seconds: 60,
+        dry_run: false,
+        min_pid: 1000,
+    }
+}
+
+/// Load configuration from file
+/// TODO: Implementation in Sprint 3 (REAPER-010)
+pub fun load_config(path: &str) -> Config {
+    default_config()
+}
+
+/// Validate configuration
+/// TODO: Implementation in Sprint 3
+pub fun validate_config(config: &Config) -> bool {
+    config.scan_interval_seconds > 0 && config.min_pid > 0
+}
