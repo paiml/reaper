@@ -2,8 +2,8 @@
 // Pure Ruchy v3.155.0 Implementation
 // Single-file architecture with extreme TDD
 //
-// TICKET: REAPER-106 (RED phase) - Priority enum tests
-// Status: Writing failing tests for Priority enum (RED phase of TDD)
+// TICKET: REAPER-106 (GREEN phase) - Priority enum implementation
+// Status: Making Priority tests pass (GREEN phase of TDD)
 //
 // This tool automatically detects and terminates rogue processes that consume
 // excessive system resources. Based on real production incident (2025-10-31)
@@ -206,26 +206,30 @@ fun format_process(proc: Process) -> String {
 /// Converts a Priority to its string representation.
 /// Returns the priority name in lowercase.
 fun priority_to_string(priority: Priority) -> String {
-    // TODO: Implement in GREEN phase
-    // This should fail tests in RED phase
-    ""  // Placeholder - returns empty string for RED phase
+    match priority {
+        Priority::High => "high",
+        Priority::Medium => "medium",
+        Priority::Low => "low",
+    }
 }
 
 /// Converts a Priority to its numeric value for sorting.
 /// Higher priority = higher numeric value.
 /// Returns: High=3, Medium=2, Low=1
 fun priority_to_value(priority: Priority) -> i32 {
-    // TODO: Implement in GREEN phase
-    // This should fail tests in RED phase
-    0  // Placeholder - always returns 0 for RED phase
+    match priority {
+        Priority::High => 3,
+        Priority::Medium => 2,
+        Priority::Low => 1,
+    }
 }
 
 /// Compares two priorities and returns true if first is higher priority.
 /// High > Medium > Low
 fun is_higher_priority(p1: Priority, p2: Priority) -> bool {
-    // TODO: Implement in GREEN phase
-    // This should fail tests in RED phase
-    false  // Placeholder - always returns false for RED phase
+    let v1 = priority_to_value(p1);
+    let v2 = priority_to_value(p2);
+    v1 > v2
 }
 
 // ============================================================================
@@ -395,7 +399,7 @@ fun test_process_zero_memory() {
 }
 
 // ============================================================================
-// TESTS - Priority Enum (expect these to FAIL in RED phase)
+// TESTS - Priority Enum (expect these to PASS in GREEN phase)
 // ============================================================================
 
 /// Test priority_to_string() converts High to "high"
@@ -493,18 +497,23 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: REAPER-106 RED PHASE");
-    println("Current: Writing tests for Priority enum");
+    println("Status: REAPER-106 GREEN PHASE");
+    println("Current: Implementing Priority enum helpers");
     println("");
     println("Completed:");
     println("  ✅ Process struct (full RED-GREEN-REFACTOR cycle)");
     println("");
     println("Current TDD Cycle (Priority enum):");
-    println("  [X] RED: Write failing tests");
-    println("  [ ] GREEN: Make tests pass");
+    println("  [✓] RED: Write failing tests");
+    println("  [X] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests: 8 Priority enum tests (expect FAILURES)");
-    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
+    println("Implemented:");
+    println("  - priority_to_string() using match expressions");
+    println("  - priority_to_value() using match expressions");
+    println("  - is_higher_priority() using value comparison");
+    println("");
+    println("Tests: 17 tests total (expect ALL PASSING)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
     println("========================================");
 }
