@@ -1581,6 +1581,20 @@ fun detect_memory_hog(proc: Process, rule: DetectionRule) -> bool {
     proc.memory_mb > rule.max_memory_mb
 }
 
+/// Checks if a process name matches a given pattern.
+/// Returns true if pattern matches process name (case-insensitive substring).
+///
+/// # Arguments
+/// * `proc` - Process to check
+/// * `pattern` - String pattern to match (empty = match all)
+///
+/// # Returns
+/// true if pattern matches proc.name (case-insensitive substring match)
+fun match_name_pattern(proc: Process, pattern: String) -> bool {
+    // RED phase - intentionally returns false
+    false
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -2622,6 +2636,75 @@ fun test_detect_memory_hog_very_high() {
 }
 
 // ============================================================================
+// TESTS - match_name_pattern()
+// ============================================================================
+
+/// Test match_name_pattern() with empty pattern
+#[test]
+fun test_match_name_pattern_empty() {
+    // Process with name "firefox"
+    let proc = new_process(100, "firefox", "/usr/bin/firefox", 10.0, 512, ProcessStatus::Running);
+
+    // Empty pattern should match all
+    let result = match_name_pattern(proc, "");
+
+    // Empty pattern matches everything (WILL FAIL in RED)
+    assert(result, "Empty pattern should match any process");
+}
+
+/// Test match_name_pattern() with exact match
+#[test]
+fun test_match_name_pattern_exact() {
+    // Process with name "chrome"
+    let proc = new_process(100, "chrome", "/usr/bin/chrome", 10.0, 512, ProcessStatus::Running);
+
+    // Exact pattern match
+    let result = match_name_pattern(proc, "chrome");
+
+    // Exact match should return true (WILL FAIL in RED)
+    assert(result, "Exact pattern should match");
+}
+
+/// Test match_name_pattern() with partial match
+#[test]
+fun test_match_name_pattern_partial() {
+    // Process with name "firefox-bin"
+    let proc = new_process(100, "firefox-bin", "/usr/bin/firefox-bin", 10.0, 512, ProcessStatus::Running);
+
+    // Partial pattern (substring)
+    let result = match_name_pattern(proc, "firefox");
+
+    // Substring match should return true (WILL FAIL in RED)
+    assert(result, "Partial pattern should match substring");
+}
+
+/// Test match_name_pattern() with case-insensitive match
+#[test]
+fun test_match_name_pattern_case_insensitive() {
+    // Process with name "Chrome"
+    let proc = new_process(100, "Chrome", "/usr/bin/Chrome", 10.0, 512, ProcessStatus::Running);
+
+    // Pattern in lowercase
+    let result = match_name_pattern(proc, "chrome");
+
+    // Case-insensitive match should return true (WILL FAIL in RED)
+    assert(result, "Pattern should be case-insensitive");
+}
+
+/// Test match_name_pattern() with no match
+#[test]
+fun test_match_name_pattern_no_match() {
+    // Process with name "vim"
+    let proc = new_process(100, "vim", "/usr/bin/vim", 10.0, 512, ProcessStatus::Running);
+
+    // Pattern that doesn't match
+    let result = match_name_pattern(proc, "emacs");
+
+    // No match should return false
+    assert(!result, "Non-matching pattern should return false");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -2633,31 +2716,29 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-303 REFACTOR PHASE");
-    println("Current: Detector - Documenting detect_memory_hog()");
+    println("Status: SPRINT 4 - REAPER-304 RED PHASE");
+    println("Current: Detector - Writing tests for match_name_pattern()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
     println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-302: detect_cpu_hog() (RED-GREEN-REFACTOR complete)");
-    println("  ✅ REAPER-303 RED: detect_memory_hog() tests (5 tests)");
-    println("  ✅ REAPER-303 GREEN: detect_memory_hog() implementation");
+    println("  ✅ REAPER-303: detect_memory_hog() (RED-GREEN-REFACTOR complete)");
     println("");
-    println("Current TDD Cycle (detect_memory_hog):");
-    println("  ✅ RED: Write failing tests");
-    println("  ✅ GREEN: Make tests pass");
-    println("  [X] REFACTOR: Improve code quality");
+    println("Current TDD Cycle (match_name_pattern):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Documentation Added (~110 lines):");
-    println("  - Algorithm: two-step threshold check (O(1))");
-    println("  - Threshold semantics (0 = disabled, MB units)");
-    println("  - 6 edge cases documented");
-    println("  - Performance: O(1) time/space, excellent branch prediction");
-    println("  - 4 usage examples (memory hogs, thresholds, disabled)");
-    println("  - Design rationale and future enhancements (7 ideas)");
+    println("Tests Added: 5 match_name_pattern tests (expect 4 FAILURES)");
+    println("  - test_match_name_pattern_empty() [WILL FAIL]");
+    println("  - test_match_name_pattern_exact() [WILL FAIL]");
+    println("  - test_match_name_pattern_partial() [WILL FAIL]");
+    println("  - test_match_name_pattern_case_insensitive() [WILL FAIL]");
+    println("  - test_match_name_pattern_no_match()");
     println("");
-    println("Total Tests: 65 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
+    println("Total Tests: 70 (65 passing from previous, 5 new)");
+    println("Next: Run 'ruchy test' - expect 4 FAILURES (RED phase)");
     println("========================================");
 }
