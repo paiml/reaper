@@ -1,0 +1,56 @@
+# Quality Gates for Reaper - Zero Tolerance Enforcement
+# Based on PMAT v2.180+ TDG enforcement system
+
+[gates.complexity]
+enabled = true
+max_complexity = 10
+max_cognitive = 7
+fail_on_violation = true
+
+[gates.tdg]
+enabled = true
+min_grade = "A"
+min_score = 93.0
+fail_on_regression = true
+
+[gates.satd]
+enabled = true
+max_count = 0  # Zero tolerance
+fail_on_violation = true
+
+[gates.coverage]
+enabled = true
+min_coverage = 0.80
+fail_below_threshold = true
+
+[gates.mutation]
+enabled = true
+min_score = 0.80
+fail_below_threshold = false  # Advisory during development
+
+[gates.ruchy]
+# Ruchy-specific quality gates
+enabled = true
+min_ruchy_score = 0.95  # A+ grade (1.0 scale)
+tools_required = [
+    "check",   # Syntax validation
+    "lint",    # Style analysis
+    "score",   # Quality scoring
+]
+tools_advisory = [
+    "fmt",     # Formatting
+    "provability",  # Formal verification
+    "runtime",      # BigO analysis
+]
+
+[baseline]
+# TDG baseline tracking
+enabled = true
+baseline_path = ".pmat/tdg-baseline.json"
+auto_update_on_main = true
+
+[enforcement]
+# Enforcement mode
+mode = "strict"  # strict, warning, or disabled
+block_commits = true
+block_builds = false  # Allow builds to continue for iteration

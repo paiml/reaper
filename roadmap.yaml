@@ -1,0 +1,70 @@
+# Reaper Process Watcher - Pure Ruchy Implementation
+# Extreme TDD with Zero Tolerance Quality Gates
+
+meta:
+  project: Reaper - Rogue Process Detection and Termination Tool
+  language: Ruchy (compiles to Rust via cargo build)
+  approach: Extreme Test-Driven Development
+  target: Showcase CLI tool + crates.io publication
+
+  quality_gates:
+    max_complexity: 10
+    max_cognitive: 7
+    min_coverage: 0.80
+    min_mutation_score: 0.80
+    satd_tolerance: 0
+    ruchy_score_min: 0.95  # A+ grade required
+
+  execution:
+    ticket_workflow: RED-GREEN-REFACTOR
+    commit_strategy: atomic_per_ticket
+    build_verification: mandatory_clean
+    ruchy_tools_validation: all_15_tools
+
+  references:
+    spec: ../ubuntu-config-scripts/docs/specifications/reaper-watcher-tool-pure-ruchy.md
+    ruchy_book: ../ruchy-book
+    quality_toolkit: ../paiml-mcp-agent-toolkit
+
+# PROJECT OVERVIEW
+overview:
+  problem: |
+    Development systems accumulate rogue background processes that consume excessive
+    CPU/memory. Real incident (2025-10-31): 17 processes killed manually, system load 9-10.
+
+  solution: |
+    Pure Ruchy daemon that automatically detects and terminates rogue processes.
+    Single binary deployment with <10MB memory, <100ms cold start.
+
+  why_ruchy:
+    - "Single binary deployment"
+    - "Native system process interaction"
+    - "Type-safe configuration"
+    - "Showcase for Ruchy language"
+    - "Publishes to crates.io as pure Rust"
+
+# SPRINT 1: Foundation (CURRENT - 3-5 days)
+sprint_1_foundation:
+  goal: "Establish Ruchy project with quality gates"
+  status: "🚀 ACTIVE"
+  target_version: "v0.1.0"
+
+  tickets:
+    - id: REAPER-001
+      title: "Initialize Ruchy project ✅ COMPLETE"
+      status: DONE
+
+    - id: REAPER-002
+      title: "Configure quality gates (pmat + ruchy)"
+      priority: HIGH
+      status: IN_PROGRESS
+      hours: 2
+      tasks:
+        - "Create pmat.toml"
+        - "Create .pmat-gates.toml"
+        - "Configure git hooks"
+      validation:
+        - "pmat analyze tdg"
+        - "ruchy quality-gate"
+
+# See full roadmap in ROADMAP_FULL.yaml for all 8 sprints

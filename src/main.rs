@@ -1,3 +1,1 @@
-fn main() {
-    println!("Hello, world!");
-}
+fn main () { println ! ("Hello, Ruchy!") ; { let name = "World" ; { println ! ("Hello, {}!" , name) ; { let numbers = [1 , 2 , 3 , 4 , 5] ; println ! ("Numbers: {:?}" , numbers) } } } }
