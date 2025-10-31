@@ -1163,9 +1163,35 @@ fun get_process_cpu_usage(pid: i32) -> f64 {
 /// # Returns
 /// Array of Process structs that match at least one rule
 fun apply_rules(procs: [Process], rules: [DetectionRule]) -> [Process] {
-    // RED phase - intentionally returns empty array
-    let empty: [Process] = [];
-    empty
+    // GREEN phase - implement matching logic
+    let mut result: [Process] = [];
+
+    // Iterate through all processes
+    let mut i = 0;
+    while i < procs.len() {
+        let proc = procs[i];
+
+        // Check if process matches any enabled rule
+        let mut matches = false;
+        let mut j = 0;
+        while j < rules.len() {
+            let rule = rules[j];
+            if rule.enabled && rule_matches_process(rule, proc) {
+                matches = true;
+                break;
+            }
+            j = j + 1;
+        }
+
+        // Add to result if matches at least one rule
+        if matches {
+            result.push(proc);
+        }
+
+        i = i + 1;
+    }
+
+    result
 }
 
 // ============================================================================
@@ -2045,8 +2071,9 @@ fun test_apply_rules_multiple_matches() {
     let result = apply_rules(procs, rules);
 
     // Should return both matching processes
-    // This will FAIL in RED phase (returns empty)
-    assert(false, "Should return multiple matching processes (RED phase - expected fail)");
+    assert(result.len() == 2, "Should return 2 matching processes");
+    assert(result[0].pid == 1234, "First process should be PID 1234");
+    assert(result[1].pid == 5678, "Second process should be PID 5678");
 }
 
 // ============================================================================
@@ -2061,27 +2088,26 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-301 RED PHASE");
-    println("Current: Detector - Writing tests for apply_rules()");
+    println("Status: SPRINT 4 - REAPER-301 GREEN PHASE");
+    println("Current: Detector - Implementing apply_rules() logic");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
+    println("  ✅ REAPER-301 RED: apply_rules() tests (6 tests added)");
     println("");
     println("Current TDD Cycle (apply_rules):");
-    println("  [X] RED: Write failing tests");
-    println("  [ ] GREEN: Make tests pass");
+    println("  ✅ RED: Write failing tests");
+    println("  [X] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests Added: 6 apply_rules tests (expect FAILURES)");
-    println("  - test_apply_rules_returns_array()");
-    println("  - test_apply_rules_empty_rules()");
-    println("  - test_apply_rules_no_matches()");
-    println("  - test_apply_rules_one_match()");
-    println("  - test_apply_rules_disabled_rule()");
-    println("  - test_apply_rules_multiple_matches()");
+    println("Implementation:");
+    println("  - Iterates through all processes");
+    println("  - Checks each against all enabled rules");
+    println("  - Uses rule_matches_process() for matching");
+    println("  - Returns array of matching processes");
     println("");
-    println("Total Tests: 55 (49 passing from Sprint 3, 6 new failing)");
-    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
+    println("Total Tests: 55 (expect ALL PASSING)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
     println("========================================");
 }
