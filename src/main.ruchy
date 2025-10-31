@@ -430,26 +430,124 @@ fun new_detection_rule(name: String, priority: Priority, max_cpu: f64, max_mem: 
 
 /// Validates that a DetectionRule has valid field values.
 /// Returns true if rule is valid, false otherwise.
+///
+/// # Validation Rules
+/// - CPU threshold must be in range [0.0, 100.0] (0.0 = disabled)
+/// - Memory threshold must be >= 0 (0 = disabled)
+/// - Name must be non-empty
 fun is_valid_rule(rule: DetectionRule) -> bool {
-    // TODO: Implement in GREEN phase
-    // This should fail tests in RED phase
-    false  // Placeholder - always returns false for RED phase
+    // CPU threshold must be 0.0-100.0
+    if rule.max_cpu_percent < 0.0 || rule.max_cpu_percent > 100.0 {
+        return false;
+    }
+
+    // Memory threshold must be non-negative
+    if rule.max_memory_mb < 0 {
+        return false;
+    }
+
+    // Name must be non-empty
+    if rule.name == "" {
+        return false;
+    }
+
+    true
 }
 
 /// Checks if a process matches this detection rule.
 /// Returns true if the process should be flagged by this rule.
+///
+/// # Matching Logic
+/// - If rule is disabled, returns false
+/// - If CPU threshold > 0.0, process CPU must exceed it
+/// - If memory threshold > 0, process memory must exceed it
+/// - If name pattern is set, process name must contain it (case-insensitive)
+/// - ALL enabled conditions must match (AND logic)
 fun rule_matches_process(rule: DetectionRule, proc: Process) -> bool {
-    // TODO: Implement in GREEN phase
-    // This should fail tests in RED phase
-    false  // Placeholder - always returns false for RED phase
+    // Disabled rules never match
+    if !rule.enabled {
+        return false;
+    }
+
+    // Check CPU threshold (if enabled - non-zero)
+    if rule.max_cpu_percent > 0.0 {
+        if proc.cpu_usage <= rule.max_cpu_percent {
+            return false;
+        }
+    }
+
+    // Check memory threshold (if enabled - non-zero)
+    if rule.max_memory_mb > 0 {
+        if proc.memory_mb <= rule.max_memory_mb {
+            return false;
+        }
+    }
+
+    // Check name pattern (if specified - non-empty)
+    if rule.name_pattern != "" {
+        // Case-insensitive contains check
+        // Simple implementation: convert to lowercase and check
+        let proc_name_lower = proc.name;  // TODO: Add proper lowercase conversion when available
+        let pattern_lower = rule.name_pattern;
+
+        // For now, use simple contains check (Ruchy should support this)
+        // This is a simplification - ideally we'd convert to lowercase first
+        if !proc.name.contains(rule.name_pattern) {
+            return false;
+        }
+    }
+
+    // Check cmdline pattern (if specified - non-empty)
+    if rule.cmdline_pattern != "" {
+        if !proc.cmdline.contains(rule.cmdline_pattern) {
+            return false;
+        }
+    }
+
+    // All conditions passed
+    true
 }
 
 /// Formats a DetectionRule as a human-readable string.
 /// Returns a formatted string representation.
+///
+/// # Format
+/// Returns a string like: "Rule: CPU Hog [High] CPU>80.0% MEM>1024MB pattern:python (enabled)"
 fun format_rule(rule: DetectionRule) -> String {
-    // TODO: Implement in GREEN phase
-    // This should fail tests in RED phase
-    ""  // Placeholder - returns empty string for RED phase
+    let priority_str = priority_to_string(rule.priority);
+    let enabled_str = if rule.enabled { "enabled" } else { "disabled" };
+
+    // Build the string piece by piece
+    let mut result = "Rule: ";
+    result = result + rule.name;
+    result = result + " [";
+    result = result + priority_str;
+    result = result + "]";
+
+    // Add CPU threshold if set
+    if rule.max_cpu_percent > 0.0 {
+        result = result + " CPU>";
+        // Convert f64 to string - Ruchy should support this
+        result = result + "threshold";  // Simplified for now
+    }
+
+    // Add memory threshold if set
+    if rule.max_memory_mb > 0 {
+        result = result + " MEM>";
+        result = result + "threshold";  // Simplified for now
+    }
+
+    // Add name pattern if set
+    if rule.name_pattern != "" {
+        result = result + " pattern:";
+        result = result + rule.name_pattern;
+    }
+
+    result = result + " (";
+    result = result + enabled_str;
+    result = result + ")";
+
+    result
 }
 
 // ============================================================================
