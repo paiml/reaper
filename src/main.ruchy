@@ -1965,10 +1965,20 @@ fun terminate_process(pid: i32, grace_period: i64) -> ActionResult {
 }
 
 /// Safe termination wrapper for Process struct with grace period.
-/// RED phase stub - returns false.
+/// GREEN phase - minimal implementation to pass tests.
 fun safe_kill_with_grace(proc: Process, grace_period: i64) -> bool {
-    // RED phase - intentionally fails
-    false
+    // Extract PID from Process struct
+    let pid = proc.pid;
+
+    // Call terminate_process with the PID and grace period
+    let result = terminate_process(pid, grace_period);
+
+    // Convert ActionResult to bool
+    // Success = true, all other results = false
+    match result {
+        ActionResult::Success => true,
+        _ => false,
+    }
 }
 
 // ============================================================================
@@ -3224,30 +3234,28 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 5 - REAPER-402 RED PHASE");
-    println("Current: Terminator - Testing safe_kill_with_grace()");
+    println("Status: SPRINT 5 - REAPER-402 GREEN PHASE");
+    println("Current: Terminator - Implementing safe_kill_with_grace()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (5 complete)");
     println("  ✅ Sprint 3: Scanner functions (3 complete)");
     println("  ✅ Sprint 4: Detector functions (4 complete)");
     println("  ✅ REAPER-401: terminate_process() (RED-GREEN-REFACTOR complete)");
+    println("  ✅ REAPER-402 RED: safe_kill_with_grace() tests");
     println("");
     println("Current TDD Cycle (safe_kill_with_grace):");
-    println("  [X] RED: Write failing tests");
-    println("  [ ] GREEN: Make tests pass");
+    println("  ✅ RED: Write failing tests");
+    println("  [X] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("RED Phase (safe_kill_with_grace):");
-    println("  - Added safe_kill_with_grace() stub (returns false)");
-    println("  - Added 5 tests:");
-    println("    1. test_safe_kill_returns_bool() - Type checking");
-    println("    2. test_safe_kill_success() - Successful termination (FAILS)");
-    println("    3. test_safe_kill_with_valid_process() - Valid process");
-    println("    4. test_safe_kill_zero_grace() - Zero grace period");
-    println("    5. test_safe_kill_long_grace() - Longer grace period");
+    println("GREEN Phase Implementation:");
+    println("  - Extracts PID from Process struct");
+    println("  - Calls terminate_process(pid, grace_period)");
+    println("  - Converts ActionResult to bool (Success → true)");
+    println("  - Minimal wrapper around terminate_process()");
     println("");
-    println("Total Tests: 80 (expect 1 FAILURE - RED phase)");
-    println("Next: Run 'ruchy test' - expect 1 test to FAIL");
+    println("Total Tests: 80 (expect ALL PASSING - GREEN phase)");
+    println("Next: Run 'ruchy test' - expect SUCCESS");
     println("========================================");
 }
