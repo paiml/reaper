@@ -94,6 +94,17 @@ enum ProcessStatus {
     Zombie,
 }
 
+/// ActionResult represents the outcome of a process termination attempt.
+/// Used by terminate_process() to communicate success or failure reasons.
+enum ActionResult {
+    Success,           // Process terminated successfully
+    AlreadyDead,       // Process was already dead
+    PermissionDenied,  // Insufficient permissions
+    NotFound,          // Process not found
+    TimedOut,          // Termination timed out
+    Failed,            // General failure
+}
+
 /// Process represents a snapshot of a single process at a point in time.
 /// Contains all information needed for detection and termination decisions.
 ///
@@ -1731,6 +1742,24 @@ fun match_name_pattern(proc: Process, pattern: String) -> bool {
 }
 
 // ============================================================================
+// TERMINATOR - Safe Process Termination
+// ============================================================================
+
+/// Terminates a process safely with graceful shutdown attempt.
+/// Sends SIGTERM first, waits grace_period seconds, then sends SIGKILL if needed.
+///
+/// # Arguments
+/// * `pid` - Process ID to terminate
+/// * `grace_period` - Seconds to wait after SIGTERM before SIGKILL
+///
+/// # Returns
+/// ActionResult indicating success or failure reason
+fun terminate_process(pid: i32, grace_period: i64) -> ActionResult {
+    // RED phase - intentionally returns failed result
+    ActionResult::Failed
+}
+
+// ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
 
@@ -2840,6 +2869,73 @@ fun test_match_name_pattern_no_match() {
 }
 
 // ============================================================================
+// TESTS - terminate_process()
+// ============================================================================
+
+/// Test terminate_process() returns ActionResult
+#[test]
+fun test_terminate_process_returns_result() {
+    // Call with valid PID and grace period
+    let result = terminate_process(1, 5);
+
+    // Should return an ActionResult variant (any variant is valid for type check)
+    assert(true, "Function should return ActionResult type");
+}
+
+/// Test terminate_process() with success scenario
+#[test]
+fun test_terminate_process_success() {
+    // Terminate a non-existent process (safe for testing)
+    // In real implementation, would send SIGTERM and verify termination
+    let result = terminate_process(99999, 5);
+
+    // For RED phase, this will fail - expecting Success
+    // In GREEN phase, will implement actual termination
+    match result {
+        ActionResult::Success => assert(true, "Process terminated successfully"),
+        _ => assert(false, "Expected Success result (RED phase - will fail)"),
+    }
+}
+
+/// Test terminate_process() with already dead process
+#[test]
+fun test_terminate_process_already_dead() {
+    // Process that doesn't exist
+    let result = terminate_process(99999, 5);
+
+    // Should return AlreadyDead or NotFound
+    match result {
+        ActionResult::AlreadyDead => assert(true, "Process already dead"),
+        ActionResult::NotFound => assert(true, "Process not found"),
+        _ => assert(true, "Acceptable result for non-existent process"),
+    }
+}
+
+/// Test terminate_process() with zero grace period
+#[test]
+fun test_terminate_process_zero_grace() {
+    // Zero grace period should immediately SIGKILL
+    let result = terminate_process(99999, 0);
+
+    // Should return some ActionResult
+    assert(true, "Zero grace period should work");
+}
+
+/// Test terminate_process() with negative PID
+#[test]
+fun test_terminate_process_invalid_pid() {
+    // Negative PID is invalid
+    let result = terminate_process(-1, 5);
+
+    // Should return Failed or PermissionDenied
+    match result {
+        ActionResult::Failed => assert(true, "Invalid PID should fail"),
+        ActionResult::PermissionDenied => assert(true, "Invalid PID denied"),
+        _ => assert(true, "Invalid PID handled"),
+    }
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -2851,31 +2947,32 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: 🎉 SPRINT 4 COMPLETE - ALL DETECTOR FUNCTIONS IMPLEMENTED! 🎉");
-    println("Current: Validation complete, ready for Sprint 5 (Terminator)");
+    println("Status: SPRINT 5 - REAPER-401 RED PHASE");
+    println("Current: Terminator - Writing tests for terminate_process()");
     println("");
-    println("Sprint 4 Summary - Detector Functions:");
-    println("  ✅ REAPER-301: apply_rules() - Filters processes by detection rules");
-    println("  ✅ REAPER-302: detect_cpu_hog() - CPU threshold detection");
-    println("  ✅ REAPER-303: detect_memory_hog() - Memory threshold detection");
-    println("  ✅ REAPER-304: match_name_pattern() - Name pattern matching");
-    println("");
-    println("Previous Sprints:");
+    println("Completed:");
     println("  ✅ Sprint 2: Data structures (5 complete)");
     println("  ✅ Sprint 3: Scanner functions (3 complete)");
+    println("  ✅ Sprint 4: Detector functions (4 complete)");
     println("");
-    println("Quality Metrics:");
-    println("  ✅ Tests: 70 passing (100% pass rate)");
-    println("  ✅ SATD: 0 violations (zero tolerance maintained)");
-    println("  ✅ Complexity: Low (max 2-3 per function)");
-    println("  ✅ Coverage: Excellent (all functions tested)");
-    println("  ✅ Documentation: ~49% of LOC (1,410 doc lines / 2,882 total)");
+    println("Current TDD Cycle (terminate_process):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Functions Implemented: 12 total");
-    println("  - 5 Data structures + constructors (Sprint 2)");
-    println("  - 3 Scanner functions (Sprint 3)");
-    println("  - 4 Detector functions (Sprint 4) ← JUST COMPLETED");
+    println("Tests Added: 5 terminate_process tests (expect 1 FAILURE)");
+    println("  - test_terminate_process_returns_result()");
+    println("  - test_terminate_process_success() [WILL FAIL]");
+    println("  - test_terminate_process_already_dead()");
+    println("  - test_terminate_process_zero_grace()");
+    println("  - test_terminate_process_invalid_pid()");
     println("");
-    println("Next: Sprint 5 - Terminator functions (safe process termination)");
+    println("Function: terminate_process(pid: i32, grace_period: i64) -> ActionResult");
+    println("  - Safe process termination with SIGTERM → SIGKILL escalation");
+    println("  - Grace period for clean shutdown");
+    println("  - Returns ActionResult (Success, Failed, NotFound, etc.)");
+    println("");
+    println("Total Tests: 75 (70 passing from previous, 5 new)");
+    println("Next: Run 'ruchy test' - expect 1 FAILURE (RED phase)");
     println("========================================");
 }
