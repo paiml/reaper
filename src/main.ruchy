@@ -1459,8 +1459,15 @@ fun detect_cpu_hog(proc: Process, rule: DetectionRule) -> bool {
 /// # Returns
 /// true if proc.memory_mb > rule.max_memory_mb (when threshold > 0)
 fun detect_memory_hog(proc: Process, rule: DetectionRule) -> bool {
-    // RED phase - intentionally returns false
-    false
+    // GREEN phase - implement threshold check
+
+    // If threshold is 0 or negative, feature is disabled
+    if rule.max_memory_mb <= 0 {
+        return false;
+    }
+
+    // Return true if process memory exceeds threshold
+    proc.memory_mb > rule.max_memory_mb
 }
 
 // ============================================================================
@@ -2515,28 +2522,27 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-303 RED PHASE");
-    println("Current: Detector - Writing tests for detect_memory_hog()");
+    println("Status: SPRINT 4 - REAPER-303 GREEN PHASE");
+    println("Current: Detector - Implementing detect_memory_hog() logic");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
     println("  ✅ Sprint 3: Scanner functions (all 3 complete)");
     println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-302: detect_cpu_hog() (RED-GREEN-REFACTOR complete)");
+    println("  ✅ REAPER-303 RED: detect_memory_hog() tests (5 tests)");
     println("");
     println("Current TDD Cycle (detect_memory_hog):");
-    println("  [X] RED: Write failing tests");
-    println("  [ ] GREEN: Make tests pass");
+    println("  ✅ RED: Write failing tests");
+    println("  [X] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests Added: 5 detect_memory_hog tests (expect 2 FAILURES)");
-    println("  - test_detect_memory_hog_below_threshold()");
-    println("  - test_detect_memory_hog_above_threshold() [WILL FAIL]");
-    println("  - test_detect_memory_hog_at_threshold()");
-    println("  - test_detect_memory_hog_disabled_threshold()");
-    println("  - test_detect_memory_hog_very_high() [WILL FAIL]");
+    println("Implementation:");
+    println("  - Returns false if threshold <= 0 (disabled)");
+    println("  - Returns true if memory_mb > max_memory_mb");
+    println("  - Returns false otherwise");
     println("");
-    println("Total Tests: 65 (60 passing from previous, 5 new)");
-    println("Next: Run 'ruchy test' - expect 2 FAILURES (RED phase)");
+    println("Total Tests: 65 (expect ALL PASSING)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
     println("========================================");
 }
