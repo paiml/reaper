@@ -1452,14 +1452,125 @@ fun detect_cpu_hog(proc: Process, rule: DetectionRule) -> bool {
 /// Checks if a process is a memory hog based on detection rule.
 /// Returns true if process memory usage exceeds rule threshold.
 ///
+/// This is a utility function used by rule_matches_process() for memory-based
+/// detection. It implements strict threshold checking: process must EXCEED
+/// the threshold (not equal to) to be considered a memory hog.
+///
 /// # Arguments
 /// * `proc` - Process to check
 /// * `rule` - DetectionRule with max_memory_mb threshold
 ///
 /// # Returns
 /// true if proc.memory_mb > rule.max_memory_mb (when threshold > 0)
+///
+/// # Algorithm
+///
+/// Simple two-step check (identical structure to detect_cpu_hog):
+/// 1. Check if threshold is enabled (> 0)
+/// 2. Compare process memory usage against threshold
+///
+/// Uses strict greater-than (>), not greater-or-equal (>=).
+/// A process at exactly the threshold is NOT considered a hog.
+///
+/// # Threshold Semantics
+///
+/// - **0 or negative**: Feature disabled, always returns false
+/// - **Positive value**: Threshold enabled (in MB), compare against memory_mb
+/// - **Units**: Megabytes (MB), not bytes
+/// - **No upper limit**: Can set arbitrarily high (e.g., 65536 MB = 64 GB)
+///
+/// The 0 sentinel value allows rules to disable memory checking while
+/// enabling other checks (CPU, name patterns, etc.).
+///
+/// # Edge Cases
+///
+/// 1. **Threshold disabled (0)**: Always returns false, even for huge memory
+/// 2. **Memory exactly at threshold**: Returns false (must exceed, not equal)
+/// 3. **Memory slightly above threshold**: Returns true (e.g., 4097 > 4096)
+/// 4. **Negative threshold**: Treated as disabled, returns false
+/// 5. **Memory in bytes vs MB**: Assumes proc.memory_mb is in MB
+/// 6. **Negative memory**: Invalid input, but comparison works correctly
+///
+/// # Performance Characteristics
+///
+/// - **Time Complexity**: O(1) - two comparisons
+/// - **Space Complexity**: O(1) - no allocations
+/// - **Branch Prediction**: Excellent for typical workloads
+///   * Most processes have normal memory usage (early return false)
+///   * Threshold check highly predictable (usually enabled)
+///
+/// # Examples
+///
+/// ```ruchy
+/// // Example 1: Memory hog detected
+/// let proc = new_process(100, "leaky", "/bin/leaky", 10.0, 8192, Running);
+/// let rule = new_detection_rule("High Memory", High, 0.0, 4096, "", "", true);
+/// let is_hog = detect_memory_hog(proc, rule);
+/// // Result: true (8192 MB > 4096 MB = 8 GB > 4 GB)
+/// ```
+///
+/// ```ruchy
+/// // Example 2: Memory below threshold
+/// let proc = new_process(100, "small", "/bin/small", 10.0, 512, Running);
+/// let rule = new_detection_rule("High Memory", High, 0.0, 4096, "", "", true);
+/// let is_hog = detect_memory_hog(proc, rule);
+/// // Result: false (512 MB <= 4096 MB)
+/// ```
+///
+/// ```ruchy
+/// // Example 3: Memory exactly at threshold
+/// let proc = new_process(100, "border", "/bin/border", 10.0, 4096, Running);
+/// let rule = new_detection_rule("High Memory", High, 0.0, 4096, "", "", true);
+/// let is_hog = detect_memory_hog(proc, rule);
+/// // Result: false (4096 MB NOT > 4096 MB)
+/// ```
+///
+/// ```ruchy
+/// // Example 4: Threshold disabled
+/// let proc = new_process(100, "huge", "/bin/huge", 10.0, 16384, Running);
+/// let rule = new_detection_rule("No Memory Check", High, 0.0, 0, "", "", true);
+/// let is_hog = detect_memory_hog(proc, rule);
+/// // Result: false (threshold disabled)
+/// ```
+///
+/// # Usage in Reaper
+///
+/// This function is called by rule_matches_process() as part of overall detection:
+/// 1. **Within rule_matches_process()**: AND-combined with other checks
+/// 2. **Direct usage**: Custom logic or debugging
+/// 3. **Daemon loop**: Part of scan → detect → terminate cycle
+///
+/// # Design Rationale
+///
+/// - **Strict greater-than**: Prevents false positives at threshold boundary
+/// - **0 sentinel**: Simple, efficient way to disable check
+/// - **Separate function**: Reusable, testable, single responsibility
+/// - **No side effects**: Pure function, safe to call anywhere
+/// - **Parallel to detect_cpu_hog**: Consistent API and semantics
+///
+/// # Future Enhancements
+///
+/// When Ruchy adds more features, consider:
+/// 1. **Growth rate detection**: Trigger on rapid memory increase
+/// 2. **Hysteresis**: Different thresholds for trigger vs clear
+/// 3. **Percentage-based**: Threshold as % of total system memory
+/// 4. **RSS vs VSZ**: Distinguish resident vs virtual memory
+/// 5. **Shared memory**: Account for shared pages
+/// 6. **Memory leak detection**: Track growth over time
+/// 7. **Swap usage**: Include swap memory in calculation
+///
+/// # Testing
+///
+/// Covered by 5 unit tests:
+/// - test_detect_memory_hog_below_threshold() - Memory below threshold
+/// - test_detect_memory_hog_above_threshold() - Memory above threshold
+/// - test_detect_memory_hog_at_threshold() - Memory exactly at threshold
+/// - test_detect_memory_hog_disabled_threshold() - Threshold disabled (0)
+/// - test_detect_memory_hog_very_high() - Very high memory (16 GB)
+///
+/// Additional testing via rule_matches_process() integration tests.
 fun detect_memory_hog(proc: Process, rule: DetectionRule) -> bool {
-    // GREEN phase - implement threshold check
+    // REFACTOR phase - implementation unchanged, documentation added
 
     // If threshold is 0 or negative, feature is disabled
     if rule.max_memory_mb <= 0 {
@@ -2522,8 +2633,8 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 4 - REAPER-303 GREEN PHASE");
-    println("Current: Detector - Implementing detect_memory_hog() logic");
+    println("Status: SPRINT 4 - REAPER-303 REFACTOR PHASE");
+    println("Current: Detector - Documenting detect_memory_hog()");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (all 5 complete)");
@@ -2531,18 +2642,22 @@ fun main() {
     println("  ✅ REAPER-301: apply_rules() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-302: detect_cpu_hog() (RED-GREEN-REFACTOR complete)");
     println("  ✅ REAPER-303 RED: detect_memory_hog() tests (5 tests)");
+    println("  ✅ REAPER-303 GREEN: detect_memory_hog() implementation");
     println("");
     println("Current TDD Cycle (detect_memory_hog):");
     println("  ✅ RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code quality");
+    println("  ✅ GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("Implementation:");
-    println("  - Returns false if threshold <= 0 (disabled)");
-    println("  - Returns true if memory_mb > max_memory_mb");
-    println("  - Returns false otherwise");
+    println("Documentation Added (~110 lines):");
+    println("  - Algorithm: two-step threshold check (O(1))");
+    println("  - Threshold semantics (0 = disabled, MB units)");
+    println("  - 6 edge cases documented");
+    println("  - Performance: O(1) time/space, excellent branch prediction");
+    println("  - 4 usage examples (memory hogs, thresholds, disabled)");
+    println("  - Design rationale and future enhancements (7 ideas)");
     println("");
     println("Total Tests: 65 (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (REFACTOR phase)");
     println("========================================");
 }
