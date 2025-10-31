@@ -2,8 +2,8 @@
 // Pure Ruchy v3.155.0 Implementation
 // Single-file architecture with extreme TDD
 //
-// TICKET: REAPER-105 (REFACTOR phase) - Improve code quality to A+
-// Status: Refactoring for quality (keeping tests GREEN)
+// TICKET: REAPER-106 (RED phase) - Priority enum tests
+// Status: Writing failing tests for Priority enum (RED phase of TDD)
 //
 // This tool automatically detects and terminates rogue processes that consume
 // excessive system resources. Based on real production incident (2025-10-31)
@@ -12,6 +12,14 @@
 // ============================================================================
 // DATA STRUCTURES
 // ============================================================================
+
+/// Priority represents the urgency level of a detection rule.
+/// Used to prioritize which rogue processes to terminate first.
+enum Priority {
+    High,
+    Medium,
+    Low,
+}
 
 /// ProcessStatus represents the current execution state of a process.
 /// Maps to Linux process states from /proc/[pid]/stat.
@@ -195,6 +203,31 @@ fun format_process(proc: Process) -> String {
     formatted
 }
 
+/// Converts a Priority to its string representation.
+/// Returns the priority name in lowercase.
+fun priority_to_string(priority: Priority) -> String {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    ""  // Placeholder - returns empty string for RED phase
+}
+
+/// Converts a Priority to its numeric value for sorting.
+/// Higher priority = higher numeric value.
+/// Returns: High=3, Medium=2, Low=1
+fun priority_to_value(priority: Priority) -> i32 {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    0  // Placeholder - always returns 0 for RED phase
+}
+
+/// Compares two priorities and returns true if first is higher priority.
+/// High > Medium > Low
+fun is_higher_priority(p1: Priority, p2: Priority) -> bool {
+    // TODO: Implement in GREEN phase
+    // This should fail tests in RED phase
+    false  // Placeholder - always returns false for RED phase
+}
+
 // ============================================================================
 // TESTS - Process Struct (All tests should PASS after REFACTOR)
 // ============================================================================
@@ -362,6 +395,93 @@ fun test_process_zero_memory() {
 }
 
 // ============================================================================
+// TESTS - Priority Enum (expect these to FAIL in RED phase)
+// ============================================================================
+
+/// Test priority_to_string() converts High to "high"
+#[test]
+fun test_priority_high_to_string() {
+    let high = Priority::High;
+    let result = priority_to_string(high);
+    // This will FAIL in RED phase (returns empty string)
+    assert(result == "high", "Priority::High should convert to 'high'");
+}
+
+/// Test priority_to_string() converts Medium to "medium"
+#[test]
+fun test_priority_medium_to_string() {
+    let medium = Priority::Medium;
+    let result = priority_to_string(medium);
+    // This will FAIL in RED phase
+    assert(result == "medium", "Priority::Medium should convert to 'medium'");
+}
+
+/// Test priority_to_string() converts Low to "low"
+#[test]
+fun test_priority_low_to_string() {
+    let low = Priority::Low;
+    let result = priority_to_string(low);
+    // This will FAIL in RED phase
+    assert(result == "low", "Priority::Low should convert to 'low'");
+}
+
+/// Test priority_to_value() assigns correct numeric values
+#[test]
+fun test_priority_to_value() {
+    let high = Priority::High;
+    let medium = Priority::Medium;
+    let low = Priority::Low;
+
+    // This will FAIL in RED phase (all return 0)
+    assert(priority_to_value(high) == 3, "High priority should have value 3");
+    assert(priority_to_value(medium) == 2, "Medium priority should have value 2");
+    assert(priority_to_value(low) == 1, "Low priority should have value 1");
+}
+
+/// Test is_higher_priority() correctly compares High vs Medium
+#[test]
+fun test_priority_high_vs_medium() {
+    let high = Priority::High;
+    let medium = Priority::Medium;
+
+    // This will FAIL in RED phase (always returns false)
+    assert(is_higher_priority(high, medium), "High should be higher than Medium");
+    assert(!is_higher_priority(medium, high), "Medium should not be higher than High");
+}
+
+/// Test is_higher_priority() correctly compares High vs Low
+#[test]
+fun test_priority_high_vs_low() {
+    let high = Priority::High;
+    let low = Priority::Low;
+
+    // This will FAIL in RED phase
+    assert(is_higher_priority(high, low), "High should be higher than Low");
+    assert(!is_higher_priority(low, high), "Low should not be higher than High");
+}
+
+/// Test is_higher_priority() correctly compares Medium vs Low
+#[test]
+fun test_priority_medium_vs_low() {
+    let medium = Priority::Medium;
+    let low = Priority::Low;
+
+    // This will FAIL in RED phase
+    assert(is_higher_priority(medium, low), "Medium should be higher than Low");
+    assert(!is_higher_priority(low, medium), "Low should not be higher than Medium");
+}
+
+/// Test is_higher_priority() with equal priorities returns false
+#[test]
+fun test_priority_equal() {
+    let high1 = Priority::High;
+    let high2 = Priority::High;
+
+    // This will FAIL in RED phase
+    assert(!is_higher_priority(high1, high2), "Equal priorities should return false");
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -373,19 +493,18 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: REAPER-105 REFACTOR PHASE");
-    println("Current: Improving code quality to A+ grade");
+    println("Status: REAPER-106 RED PHASE");
+    println("Current: Writing tests for Priority enum");
     println("");
-    println("TDD Cycle:");
-    println("  [✓] RED: Write failing tests");
-    println("  [✓] GREEN: Make tests pass");
-    println("  [X] REFACTOR: Improve code quality");
+    println("Completed:");
+    println("  ✅ Process struct (full RED-GREEN-REFACTOR cycle)");
     println("");
-    println("Improvements:");
-    println("  - Comprehensive documentation (///doc comments)");
-    println("  - Detailed validation logic comments");
-    println("  - Enhanced code clarity");
+    println("Current TDD Cycle (Priority enum):");
+    println("  [X] RED: Write failing tests");
+    println("  [ ] GREEN: Make tests pass");
+    println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Next: Run quality checks - expect A+ (0.95+)");
+    println("Tests: 8 Priority enum tests (expect FAILURES)");
+    println("Next: Run 'ruchy test' - expect FAILURES (RED phase)");
     println("========================================");
 }
