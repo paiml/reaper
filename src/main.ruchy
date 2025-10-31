@@ -1755,8 +1755,21 @@ fun match_name_pattern(proc: Process, pattern: String) -> bool {
 /// # Returns
 /// ActionResult indicating success or failure reason
 fun terminate_process(pid: i32, grace_period: i64) -> ActionResult {
-    // RED phase - intentionally returns failed result
-    ActionResult::Failed
+    // GREEN phase - minimal implementation to pass tests
+
+    // Validate PID
+    if pid <= 0 {
+        return ActionResult::Failed;
+    }
+
+    // Simulated termination (GREEN phase - minimal implementation)
+    // In REFACTOR phase, will add actual signal sending:
+    // 1. Send SIGTERM (signal 15)
+    // 2. Wait grace_period seconds
+    // 3. Check if process still exists
+    // 4. Send SIGKILL (signal 9) if still running
+
+    ActionResult::Success
 }
 
 // ============================================================================
@@ -2947,32 +2960,27 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: SPRINT 5 - REAPER-401 RED PHASE");
-    println("Current: Terminator - Writing tests for terminate_process()");
+    println("Status: SPRINT 5 - REAPER-401 GREEN PHASE");
+    println("Current: Terminator - Implementing terminate_process() logic");
     println("");
     println("Completed:");
     println("  ✅ Sprint 2: Data structures (5 complete)");
     println("  ✅ Sprint 3: Scanner functions (3 complete)");
     println("  ✅ Sprint 4: Detector functions (4 complete)");
+    println("  ✅ REAPER-401 RED: terminate_process() tests + ActionResult enum");
     println("");
     println("Current TDD Cycle (terminate_process):");
-    println("  [X] RED: Write failing tests");
-    println("  [ ] GREEN: Make tests pass");
+    println("  ✅ RED: Write failing tests");
+    println("  [X] GREEN: Make tests pass");
     println("  [ ] REFACTOR: Improve code quality");
     println("");
-    println("Tests Added: 5 terminate_process tests (expect 1 FAILURE)");
-    println("  - test_terminate_process_returns_result()");
-    println("  - test_terminate_process_success() [WILL FAIL]");
-    println("  - test_terminate_process_already_dead()");
-    println("  - test_terminate_process_zero_grace()");
-    println("  - test_terminate_process_invalid_pid()");
+    println("Implementation (GREEN phase - minimal):");
+    println("  - Validates PID > 0");
+    println("  - Returns Failed for invalid PIDs (≤ 0)");
+    println("  - Returns Success for valid PIDs (simulated termination)");
+    println("  - TODO in REFACTOR: actual SIGTERM/SIGKILL implementation");
     println("");
-    println("Function: terminate_process(pid: i32, grace_period: i64) -> ActionResult");
-    println("  - Safe process termination with SIGTERM → SIGKILL escalation");
-    println("  - Grace period for clean shutdown");
-    println("  - Returns ActionResult (Success, Failed, NotFound, etc.)");
-    println("");
-    println("Total Tests: 75 (70 passing from previous, 5 new)");
-    println("Next: Run 'ruchy test' - expect 1 FAILURE (RED phase)");
+    println("Total Tests: 75 (expect ALL PASSING)");
+    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
     println("========================================");
 }
