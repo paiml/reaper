@@ -338,4 +338,6 @@ Both need separate updates from Ruchy team.
 
 **See also**:
 - RUCHY_TOOLS_VALIDATION_v3.161.0.md - Detailed v3.161.0 comparison
-- GitHub Issues #107-#111 - Tool and transpiler issues filed
+- GitHub Issue #112 - **COMPREHENSIVE tool validation issue** (all 4 affected tools)
+- GitHub Issues #107-#110 - Individual tool issues (consolidated into #112)
+- GitHub Issue #111 - Transpiler bugs (separate issue, mostly fixed in v3.163.0)

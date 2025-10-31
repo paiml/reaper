@@ -139,22 +139,27 @@ Next:      ~0 errors (minor fixes needed)
 
 ---
 
-## GitHub Issues Filed (5 Total)
+## GitHub Issues Filed (6 Total)
 
-### Tool Limitations (Sprint 7)
-
-| Issue | Title | Status | Impact |
-|-------|-------|--------|--------|
-| [#107](https://github.com/paiml/ruchy/issues/107) | ruchy lint: False positives on enums | Open | Quality scoring |
-| [#108](https://github.com/paiml/ruchy/issues/108) | ruchy mutations: Finds 0 mutants | Open | Mutation testing |
-| [#109](https://github.com/paiml/ruchy/issues/109) | ruchy quality-gate: False violations | Open | Quality gates |
-| [#110](https://github.com/paiml/ruchy/issues/110) | ruchy doc: Minimal extraction | Open | Documentation |
-
-### Transpiler Bug (Sprint 8)
+### Tool Validation Issues (Sprint 7)
 
 | Issue | Title | Status | Impact |
 |-------|-------|--------|--------|
-| [#111](https://github.com/paiml/ruchy/issues/111) | **CRITICAL**: Transpiler bugs | **URGENT** | **BLOCKS PUBLICATION** |
+| [#112](https://github.com/paiml/ruchy/issues/112) | **Tool Suite: Enum/Struct Support Issues** | **NEW** | **Comprehensive** |
+| [#107](https://github.com/paiml/ruchy/issues/107) | ruchy lint: False positives on enums | Open | Consolidated into #112 |
+| [#108](https://github.com/paiml/ruchy/issues/108) | ruchy mutations: Finds 0 mutants | Open | Consolidated into #112 |
+| [#109](https://github.com/paiml/ruchy/issues/109) | ruchy quality-gate: False violations | Open | Consolidated into #112 |
+| [#110](https://github.com/paiml/ruchy/issues/110) | ruchy doc: Minimal extraction | Open | Consolidated into #112 |
+
+**Issue #112** is a comprehensive, detailed report with full reproducibility covering all tool validation problems.
+
+### Transpiler Issues (Sprint 8)
+
+| Issue | Title | Status | Impact |
+|-------|-------|--------|--------|
+| [#111](https://github.com/paiml/ruchy/issues/111) | **Transpiler bugs** | **In Progress** | **13 errors remain (88% fixed)** |
+
+**Issue #111** updated through v3.155.0 → v3.161.0 → v3.163.0 with detailed progress tracking.
 
 ---
 
