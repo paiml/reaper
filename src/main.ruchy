@@ -2,8 +2,8 @@
 // Pure Ruchy v3.155.0 Implementation
 // Single-file architecture with extreme TDD
 //
-// TICKET: REAPER-106 (GREEN phase) - Priority enum implementation
-// Status: Making Priority tests pass (GREEN phase of TDD)
+// TICKET: REAPER-106 (REFACTOR phase) - Priority enum documentation
+// Status: Improving Priority enum quality (keeping tests GREEN)
 //
 // This tool automatically detects and terminates rogue processes that consume
 // excessive system resources. Based on real production incident (2025-10-31)
@@ -14,7 +14,65 @@
 // ============================================================================
 
 /// Priority represents the urgency level of a detection rule.
-/// Used to prioritize which rogue processes to terminate first.
+///
+/// Priorities determine the order in which rogue processes are terminated.
+/// Higher priority rules are checked and enforced before lower priority rules.
+/// This ensures critical resource protection is prioritized.
+///
+/// # Variants
+/// * `High` - Critical priority (value=3). Processes matching high-priority
+///   rules are terminated immediately without grace period. Use for severe
+///   resource exhaustion that threatens system stability.
+///
+/// * `Medium` - Normal priority (value=2). Standard detection rules with
+///   normal termination flow (SIGTERM, then SIGKILL after grace period).
+///   Use for typical rogue process detection.
+///
+/// * `Low` - Advisory priority (value=1). Low-priority rules may only log
+///   violations rather than terminate. Use for monitoring and alerting
+///   without automatic termination.
+///
+/// # Ordering
+/// Priority ordering: High > Medium > Low
+///
+/// # Usage
+/// ```
+/// let critical_rule_priority = Priority::High;
+/// let standard_rule_priority = Priority::Medium;
+///
+/// // Compare priorities
+/// if is_higher_priority(critical_rule_priority, standard_rule_priority) {
+///     println("Critical rule takes precedence");
+/// }
+///
+/// // Convert to string for logging
+/// println("Priority: {}", priority_to_string(critical_rule_priority));
+/// // Output: "Priority: high"
+/// ```
+///
+/// # Example: Rule Prioritization
+/// ```
+/// // High priority: Immediate threat to system
+/// let memory_bomb = DetectionRule {
+///     priority: Priority::High,
+///     max_memory_mb: 8192,  // 8GB limit
+///     ...
+/// };
+///
+/// // Medium priority: Normal resource control
+/// let cpu_hog = DetectionRule {
+///     priority: Priority::Medium,
+///     max_cpu_percent: 90.0,
+///     ...
+/// };
+///
+/// // Low priority: Monitoring only
+/// let suspicious_pattern = DetectionRule {
+///     priority: Priority::Low,
+///     name_pattern: "suspicious.*",
+///     ...
+/// };
+/// ```
 enum Priority {
     High,
     Medium,
@@ -204,7 +262,35 @@ fun format_process(proc: Process) -> String {
 }
 
 /// Converts a Priority to its string representation.
-/// Returns the priority name in lowercase.
+///
+/// Returns the priority name in lowercase, suitable for logging,
+/// configuration files, and user display.
+///
+/// # Arguments
+/// * `priority` - The Priority variant to convert
+///
+/// # Returns
+/// A lowercase string representation:
+/// * `Priority::High` → `"high"`
+/// * `Priority::Medium` → `"medium"`
+/// * `Priority::Low` → `"low"`
+///
+/// # Example
+/// ```
+/// let p = Priority::High;
+/// let name = priority_to_string(p);
+/// assert(name == "high");
+///
+/// // Use in logging
+/// println("Rule priority: {}", priority_to_string(Priority::Medium));
+/// // Output: "Rule priority: medium"
+/// ```
+///
+/// # Use Cases
+/// - Logging and audit trails
+/// - Configuration file output
+/// - User-facing displays
+/// - API responses
 fun priority_to_string(priority: Priority) -> String {
     match priority {
         Priority::High => "high",
@@ -213,9 +299,45 @@ fun priority_to_string(priority: Priority) -> String {
     }
 }
 
-/// Converts a Priority to its numeric value for sorting.
-/// Higher priority = higher numeric value.
-/// Returns: High=3, Medium=2, Low=1
+/// Converts a Priority to its numeric value for sorting and comparison.
+///
+/// Returns an integer value where higher numbers indicate higher priority.
+/// This enables numeric comparison and sorting of priorities.
+///
+/// # Arguments
+/// * `priority` - The Priority variant to convert
+///
+/// # Returns
+/// An integer value representing priority level:
+/// * `Priority::High` → `3` (highest)
+/// * `Priority::Medium` → `2`
+/// * `Priority::Low` → `1` (lowest)
+///
+/// # Value Mapping
+/// The mapping ensures that standard numeric comparison operators work
+/// correctly: `3 > 2 > 1` matches `High > Medium > Low`
+///
+/// # Example
+/// ```
+/// let high = Priority::High;
+/// let medium = Priority::Medium;
+/// let low = Priority::Low;
+///
+/// assert(priority_to_value(high) == 3);
+/// assert(priority_to_value(medium) == 2);
+/// assert(priority_to_value(low) == 1);
+///
+/// // Use for sorting
+/// if priority_to_value(high) > priority_to_value(medium) {
+///     println("High priority rules processed first");
+/// }
+/// ```
+///
+/// # Use Cases
+/// - Sorting detection rules by priority
+/// - Numeric priority comparison
+/// - Priority-based scheduling
+/// - Queue ordering
 fun priority_to_value(priority: Priority) -> i32 {
     match priority {
         Priority::High => 3,
@@ -224,8 +346,55 @@ fun priority_to_value(priority: Priority) -> i32 {
     }
 }
 
-/// Compares two priorities and returns true if first is higher priority.
-/// High > Medium > Low
+/// Compares two priorities and determines if the first has higher priority.
+///
+/// Uses `priority_to_value()` internally to convert both priorities to
+/// numeric values and compares them. Returns true if the first priority
+/// is strictly higher than the second.
+///
+/// # Arguments
+/// * `p1` - First priority to compare
+/// * `p2` - Second priority to compare
+///
+/// # Returns
+/// * `true` if `p1` has higher priority than `p2`
+/// * `false` if `p1` has equal or lower priority than `p2`
+///
+/// # Priority Ordering
+/// `High > Medium > Low`
+///
+/// # Example
+/// ```
+/// let high = Priority::High;
+/// let medium = Priority::Medium;
+/// let low = Priority::Low;
+///
+/// // High vs Medium
+/// assert(is_higher_priority(high, medium) == true);
+/// assert(is_higher_priority(medium, high) == false);
+///
+/// // High vs Low
+/// assert(is_higher_priority(high, low) == true);
+/// assert(is_higher_priority(low, high) == false);
+///
+/// // Medium vs Low
+/// assert(is_higher_priority(medium, low) == true);
+/// assert(is_higher_priority(low, medium) == false);
+///
+/// // Equal priorities
+/// assert(is_higher_priority(high, Priority::High) == false);
+/// ```
+///
+/// # Use Cases
+/// - Rule execution ordering
+/// - Priority queue management
+/// - Conflict resolution (which rule to apply first)
+/// - Scheduler decision making
+///
+/// # Implementation Note
+/// Uses value comparison rather than direct enum comparison for clarity
+/// and maintainability. If priority values change, only `priority_to_value()`
+/// needs updating.
 fun is_higher_priority(p1: Priority, p2: Priority) -> bool {
     let v1 = priority_to_value(p1);
     let v2 = priority_to_value(p2);
@@ -399,89 +568,91 @@ fun test_process_zero_memory() {
 }
 
 // ============================================================================
-// TESTS - Priority Enum (expect these to PASS in GREEN phase)
+// TESTS - Priority Enum (All tests should PASS after REFACTOR)
 // ============================================================================
 
-/// Test priority_to_string() converts High to "high"
+/// Test priority_to_string() correctly converts High variant.
+/// Verifies string representation for logging and display.
 #[test]
 fun test_priority_high_to_string() {
     let high = Priority::High;
     let result = priority_to_string(high);
-    // This will FAIL in RED phase (returns empty string)
     assert(result == "high", "Priority::High should convert to 'high'");
 }
 
-/// Test priority_to_string() converts Medium to "medium"
+/// Test priority_to_string() correctly converts Medium variant.
+/// Verifies string representation for configuration output.
 #[test]
 fun test_priority_medium_to_string() {
     let medium = Priority::Medium;
     let result = priority_to_string(medium);
-    // This will FAIL in RED phase
     assert(result == "medium", "Priority::Medium should convert to 'medium'");
 }
 
-/// Test priority_to_string() converts Low to "low"
+/// Test priority_to_string() correctly converts Low variant.
+/// Verifies string representation for user-facing displays.
 #[test]
 fun test_priority_low_to_string() {
     let low = Priority::Low;
     let result = priority_to_string(low);
-    // This will FAIL in RED phase
     assert(result == "low", "Priority::Low should convert to 'low'");
 }
 
-/// Test priority_to_value() assigns correct numeric values
+/// Test priority_to_value() assigns correct numeric values for all variants.
+/// Verifies the value mapping: High=3, Medium=2, Low=1.
+/// Critical for sorting and comparison operations.
 #[test]
 fun test_priority_to_value() {
     let high = Priority::High;
     let medium = Priority::Medium;
     let low = Priority::Low;
 
-    // This will FAIL in RED phase (all return 0)
     assert(priority_to_value(high) == 3, "High priority should have value 3");
     assert(priority_to_value(medium) == 2, "Medium priority should have value 2");
     assert(priority_to_value(low) == 1, "Low priority should have value 1");
 }
 
-/// Test is_higher_priority() correctly compares High vs Medium
+/// Test is_higher_priority() correctly compares High vs Medium.
+/// Verifies bidirectional comparison: High > Medium and !(Medium > High).
 #[test]
 fun test_priority_high_vs_medium() {
     let high = Priority::High;
     let medium = Priority::Medium;
 
-    // This will FAIL in RED phase (always returns false)
     assert(is_higher_priority(high, medium), "High should be higher than Medium");
     assert(!is_higher_priority(medium, high), "Medium should not be higher than High");
 }
 
-/// Test is_higher_priority() correctly compares High vs Low
+/// Test is_higher_priority() correctly compares High vs Low.
+/// Verifies maximum vs minimum priority comparison.
 #[test]
 fun test_priority_high_vs_low() {
     let high = Priority::High;
     let low = Priority::Low;
 
-    // This will FAIL in RED phase
     assert(is_higher_priority(high, low), "High should be higher than Low");
     assert(!is_higher_priority(low, high), "Low should not be higher than High");
 }
 
-/// Test is_higher_priority() correctly compares Medium vs Low
+/// Test is_higher_priority() correctly compares Medium vs Low.
+/// Verifies middle tier priority comparison.
 #[test]
 fun test_priority_medium_vs_low() {
     let medium = Priority::Medium;
     let low = Priority::Low;
 
-    // This will FAIL in RED phase
     assert(is_higher_priority(medium, low), "Medium should be higher than Low");
     assert(!is_higher_priority(low, medium), "Low should not be higher than Medium");
 }
 
-/// Test is_higher_priority() with equal priorities returns false
+/// Test is_higher_priority() with equal priorities returns false.
+/// Verifies that same priority levels are not considered "higher".
+/// Important for queue fairness and rule ordering.
 #[test]
 fun test_priority_equal() {
     let high1 = Priority::High;
     let high2 = Priority::High;
 
-    // This will FAIL in RED phase
     assert(!is_higher_priority(high1, high2), "Equal priorities should return false");
 }
 
@@ -497,23 +668,25 @@ fun main() {
     println("Pure Ruchy v3.155.0 - TDD Implementation");
     println("========================================");
     println("");
-    println("Status: REAPER-106 GREEN PHASE");
-    println("Current: Implementing Priority enum helpers");
+    println("Status: REAPER-106 REFACTOR PHASE");
+    println("Current: Improving Priority enum documentation");
     println("");
-    println("Completed:");
-    println("  ✅ Process struct (full RED-GREEN-REFACTOR cycle)");
+    println("Completed Cycles:");
+    println("  ✅ Process struct (full RED-GREEN-REFACTOR)");
+    println("  ✅ Priority enum (RED-GREEN, REFACTOR in progress)");
     println("");
     println("Current TDD Cycle (Priority enum):");
     println("  [✓] RED: Write failing tests");
-    println("  [X] GREEN: Make tests pass");
-    println("  [ ] REFACTOR: Improve code quality");
+    println("  [✓] GREEN: Make tests pass");
+    println("  [X] REFACTOR: Improve code quality");
     println("");
-    println("Implemented:");
-    println("  - priority_to_string() using match expressions");
-    println("  - priority_to_value() using match expressions");
-    println("  - is_higher_priority() using value comparison");
+    println("Improvements:");
+    println("  - Comprehensive Priority enum documentation");
+    println("  - Full doc comments for all helper functions");
+    println("  - Usage examples and use cases");
+    println("  - Enhanced test documentation");
     println("");
-    println("Tests: 17 tests total (expect ALL PASSING)");
-    println("Next: Run 'ruchy test' - expect SUCCESS (GREEN phase)");
+    println("Tests: 17 tests total (all passing)");
+    println("Next: Validate quality and complete cycle");
     println("========================================");
 }
