@@ -53,10 +53,17 @@ ruchy publish --dry-run
 - Ready for gh release create
 - **RECOMMENDED**: Use this for public release
 
-### Option 3: crates.io ⏳ AWAITING
-- 1 transpiler error remaining (E0382)
-- 99.1% complete
-- Not blocking Ruchy-native workflow
+### Option 3: crates.io ❌ BLOCKED BY TRANSPILER
+```bash
+ruchy publish --allow-dirty
+# ✅ Package validation passes
+# ✅ Cargo packaging succeeds (4.3MB, 65 files)
+# ❌ Verification build fails: E0382 ownership error at src/main.rs:308
+```
+
+**Error**: `use of moved value: proc` in transpiled Rust code
+**Status**: 99.1% complete, 1 transpiler bug remaining
+**Impact**: Does not block Ruchy-native workflow (ruchy compile works perfectly)
 
 ---
 
