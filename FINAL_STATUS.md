@@ -1,6 +1,6 @@
 # Reaper v1.0.0 - Final Status
 
-## 🎉 PUBLISHED - PRODUCTION READY!
+## 🎉 PUBLISHED TO CRATES.IO - PRODUCTION READY!
 
 ### Ruchy v3.169.0 - BREAKTHROUGH UPDATE
 
@@ -38,32 +38,30 @@ Three new production tools now available:
 
 ---
 
-## Publication Options
+## Publication Status
 
-### Option 1: Publish to Ruchy Registry ⏳ AWAITING IMPLEMENTATION
-```bash
-ruchy publish --dry-run
-# ✅ Package validation successful
-# ⚠️ Registry publishing not yet implemented in v3.169.0
-```
-
-### Option 2: GitHub Release ✅ READY NOW - PRIMARY OPTION
-- All files committed and pushed
-- v1.0.0 tagged
-- Ready for gh release create
-- **RECOMMENDED**: Use this for public release
-
-### Option 3: crates.io ❌ BLOCKED BY TRANSPILER
+### ✅ crates.io - PUBLISHED!
 ```bash
 ruchy publish --allow-dirty
 # ✅ Package validation passes
-# ✅ Cargo packaging succeeds (4.3MB, 65 files)
-# ❌ Verification build fails: E0382 ownership error at src/main.rs:308
+# ✅ Cargo packaging succeeds (4.4MB, 67 files)
+# ✅ Verification build succeeds (only warnings)
+# ✅ Published ruchy-reaper v1.0.0 to crates.io
 ```
 
-**Error**: `use of moved value: proc` in transpiled Rust code
-**Status**: 99.1% complete, 1 transpiler bug remaining
-**Impact**: Does not block Ruchy-native workflow (ruchy compile works perfectly)
+**Installation**:
+```bash
+cargo install ruchy-reaper
+```
+
+**Package**: https://crates.io/crates/ruchy-reaper
+**Status**: ✅ LIVE on crates.io
+**Date**: 2025-11-01
+
+### ✅ GitHub Release - PUBLISHED!
+**URL**: https://github.com/paiml/reaper/releases/tag/v1.0.0
+**Status**: ✅ LIVE on GitHub
+**Date**: 2025-11-01
 
 ---
 
@@ -83,13 +81,20 @@ ruchy publish --allow-dirty
 
 ## ✅ Publication Complete!
 
+### 🎉 DUAL PUBLICATION SUCCESS! 🎉
+
+**crates.io**: https://crates.io/crates/ruchy-reaper
+```bash
+cargo install ruchy-reaper
+```
+
 **GitHub Release**: https://github.com/paiml/reaper/releases/tag/v1.0.0
 
 **Published**: 2025-11-01
 
-**Status**: Production-ready Pure Ruchy showcase project available to the community!
+**Status**: Production-ready Pure Ruchy showcase project - **LIVE and available worldwide!**
 
-This completes the Pure Ruchy showcase! 🎉
+This completes the Pure Ruchy showcase! 🚀
 
 ---
 
