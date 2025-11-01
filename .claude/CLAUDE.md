@@ -110,6 +110,153 @@ Deepest call stack:
 
 ---
 
+## Ruchy Pathological Input Detector (DEBUGGER-042)
+
+### Overview
+
+The pathological detector finds **performance cliffs** - specific inputs that cause extreme slowdown (10x-1000x) compared to typical inputs. Complements other testing tools:
+
+- **Fuzzing** finds crashes (binary: crash or no crash)
+- **Benchmarking** measures average performance across typical inputs
+- **Pathological detector** finds specific inputs causing performance degradation
+
+Essential for:
+- Detecting quadratic/exponential algorithmic complexity
+- Finding parser stress cases (deeply nested expressions)
+- Preventing production performance issues
+- Performance regression testing
+
+### Usage
+
+**Detect pathological inputs**:
+```bash
+# Default 10x threshold
+ruchydbg detect test.ruchy
+
+# Custom threshold (15x)
+ruchydbg detect test.ruchy --threshold 15
+```
+
+**Exit codes**:
+- `0`: Performance within acceptable bounds ✅
+- `1`: Pathological input detected ⚠️
+
+**Performance**: Runs code once, measures time vs baseline
+
+### Categories of Pathological Inputs
+
+1. **ParserStress**: Deeply nested expressions, long identifier chains
+   - Example: `((((1 + 2) + 3) + 4) + ...)` (50+ levels)
+   - Causes: Parser recursion depth, stack pressure
+
+2. **EvaluatorStress**: Quadratic variable lookup, deep call stacks
+   - Example: `let a=1; let b=a; let c=b; ... lookup(z)`
+   - Causes: Linear scan through N variables → O(N²)
+
+3. **MemoryStress**: Allocation bombs, exponential structure growth
+   - Example: Exponential tree expansion
+   - Causes: Unbounded memory allocation
+
+### Example Output
+
+**Simple arithmetic** (NOT pathological):
+```
+=== Pathological Input Detection ===
+
+File: test_simple.ruchy
+Category: ParserStress
+Threshold: 10.0x
+
+Performance:
+  Baseline: 5.60 µs
+  Actual: 31.99 µs
+  Slowdown: 5.71x
+
+✅ Performance within acceptable bounds
+```
+
+**Nested expression** (pathological):
+```
+=== Pathological Input Detection ===
+
+File: test_nested_100.ruchy
+Category: ParserStress
+Threshold: 10.0x
+
+Performance:
+  Baseline: 5.60 µs
+  Actual: 245.80 µs
+  Slowdown: 43.89x
+
+⚠️  PATHOLOGICAL INPUT DETECTED!
+    This input causes 43.89x performance degradation
+```
+
+### Performance Baselines
+
+From INTERP-030 benchmarking (averaged over 1000+ iterations):
+
+| Operation | Baseline Time | Notes |
+|-----------|---------------|-------|
+| Simple arithmetic | 5.6 µs | `1 + 2 + 3` |
+| Variable ops | 12.0 µs | Variable lookup + assignment |
+| Function call | 20.0 µs | Function invocation overhead |
+
+**Important**: Single-run measurements have 6-8x variance vs averaged baselines (cold start, JIT warmup). Default 10x threshold accounts for this.
+
+### When to Use
+
+1. **Pre-production testing** - Validate inputs won't cause performance issues
+2. **Regression testing** - Detect when code changes introduce performance cliffs
+3. **Security testing** - Find DoS-vulnerable inputs (algorithmic complexity attacks)
+4. **Development** - Test edge cases that stress parser/evaluator
+
+### Integration with Reaper
+
+**Current Status**: Ready to use, but enum syntax blocks parser
+
+**Expected Use Cases** (when fixed):
+1. **Validate test complexity**: Ensure tests don't have pathological patterns
+2. **Detect accidental O(N²)**: Large rule sets with many processes
+3. **Parser stress testing**: Verify deeply nested detection rules don't cause issues
+
+**Example Test**:
+```bash
+# Test if 100 rules × 100 processes causes quadratic blowup
+ruchydbg detect test_large_ruleset.ruchy --threshold 20
+```
+
+**Red Flags for Reaper**:
+- ⚠️ Slowdown > 10x: May indicate quadratic behavior in `apply_rules()`
+- ⚠️ Parser stress: Deep nesting in rule conditions
+- ⚠️ Memory stress: Creating thousands of Process objects
+
+### Input Generators
+
+Built-in generators for common pathological patterns:
+
+```rust
+// Deeply nested expressions
+PathologicalDetector::generate_nested_expression(20);
+// Output: ((((1 + 2) + 3) + 4) + ... + 20)
+
+// Quadratic variable lookup
+PathologicalDetector::generate_quadratic_lookup(10);
+// Output: let a=1; let b=a; let c=b; ... lookup(j)
+```
+
+### Comparison: Testing Tools
+
+| Tool | Finds | Overhead | When to Use |
+|------|-------|----------|-------------|
+| **Pathological Detector** | Performance cliffs | Single run | Pre-production, security |
+| Stack Profiler | Call depth, hotspots | <1% | Recursion debugging |
+| Fuzzer | Crashes, hangs | 10-100x | Finding bugs |
+| Benchmarks | Average performance | Variable | Comparing implementations |
+| Coverage | Untested code | ~5% | Test completeness |
+
+---
+
 ## Roadmap & Status Tracking
 
 **Sprint 8 Status**: 26.5/29 tickets complete (91%)
