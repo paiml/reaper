@@ -2,7 +2,7 @@
 # Pure Ruchy showcase project demonstrating extreme TDD methodology
 
 [package]
-name = "reaper"
+name = "ruchy-reaper"
 version = "1.0.0"
 authors = ["Noah Gift <noah.gift@gmail.com>"]
 description = "Rogue process detection and termination tool - Pure Ruchy showcase CLI with 100% test coverage"
@@ -17,7 +17,7 @@ edition = "2024"
 
 # Main entry point
 [[bin]]
-name = "reaper"
+name = "ruchy-reaper"
 path = "src/main.ruchy"
 
 # Package metadata

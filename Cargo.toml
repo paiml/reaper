@@ -1,13 +1,13 @@
 [package]
 build = "build.rs"
-name = "reaper"
+name = "ruchy-reaper"
 version = "1.0.0"
 edition = "2021"
 authors = ["Noah Gift <noah.gift@gmail.com>"]
-description = "Rogue process detection and termination tool - Pure Ruchy showcase CLI"
+description = "Rogue process detection and termination tool - Pure Ruchy showcase CLI with 100% test coverage"
 license = "MIT"
 repository = "https://github.com/paiml/reaper"
-keywords = ["cli", "process", "monitoring", "ruchy", "system"]
+keywords = ["cli", "process", "monitoring", "ruchy", "tdd"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 
