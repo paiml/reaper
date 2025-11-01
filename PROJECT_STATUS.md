@@ -136,6 +136,7 @@ v3.155.0: 111+ errors (initial - enum scoping, formatting, ownership)
 v3.161.0:  42 errors (62% reduction - enum/format fixes)
 v3.163.0:  13 errors (88% reduction - string handling fixes)
 v3.164.0:  10 errors (91% reduction - Pattern trait fixed!)
+v3.166.0:  10 errors (tested - same 10 errors, no change)
 Next:      ~0 errors (return types, Vec ownership)
 ```
 
@@ -147,9 +148,9 @@ Next:      ~0 errors (return types, Vec ownership)
 
 **Our Response**:
 - ✅ Filed detailed issue immediately (STOP THE LINE)
-- ✅ Tested v3.161.0, v3.163.0, and v3.164.0 thoroughly
+- ✅ Tested v3.161.0, v3.163.0, v3.164.0, and v3.166.0 thoroughly
 - ✅ Updated GitHub issue #111 with all version progress
-- ✅ Documented all remaining issues (10 errors, very close!)
+- ✅ Documented all remaining issues (10 errors, same in v3.166.0)
 - ✅ Transparent about code vs tooling quality
 - ⏳ Awaiting final 2 categories of fixes (return types, Vec ownership)
 
