@@ -1,0 +1,44 @@
+# Ruchy Package Manifest for Reaper v1.0.0
+# Pure Ruchy showcase project demonstrating extreme TDD methodology
+
+[package]
+name = "reaper"
+version = "1.0.0"
+authors = ["Noah Gift <noah.gift@gmail.com>"]
+description = "Rogue process detection and termination tool - Pure Ruchy showcase CLI with 100% test coverage"
+license = "MIT"
+repository = "https://github.com/paiml/reaper"
+homepage = "https://github.com/paiml/reaper"
+documentation = "https://github.com/paiml/reaper/blob/master/README.md"
+keywords = ["cli", "process", "monitoring", "ruchy", "tdd", "system"]
+categories = ["command-line-utilities", "development-tools", "tdd-showcase"]
+readme = "README.md"
+edition = "2024"
+
+# Main entry point
+[[bin]]
+name = "reaper"
+path = "src/main.ruchy"
+
+# Package metadata
+[metadata]
+# Quality metrics achieved
+coverage = "100%"
+tests = 110
+satd_violations = 0
+methodology = "extreme-tdd"
+
+# Ruchy version compatibility
+[dependencies]
+ruchy = ">=3.168.0"
+
+# Development profile
+[profile.dev]
+opt_level = 0
+debug = true
+
+# Release profile
+[profile.release]
+opt_level = 3
+debug = false
+strip = true
