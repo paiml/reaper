@@ -14,7 +14,7 @@ readme = "README.md"
 [dependencies]
 
 [build-dependencies]
-ruchy = "3.71"
+ruchy = "3.170.0"
 
 [profile.release]
 opt-level = 3

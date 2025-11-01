@@ -2337,9 +2337,9 @@ dependencies = [
 
 [[package]]
 name = "ruchy"
-version = "3.154.0"
+version = "3.170.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c484d6efc54cd174240bcdc286ce863153dd8893329bba85212a75326cc1e61d"
+checksum = "002f9a121e27259a1b12e915d2566f2808a9b6fd7724b760b26cd84c5c783a3a"
 dependencies = [
  "anyhow",
  "axum",
@@ -2378,6 +2378,7 @@ dependencies = [
  "reqwest",
  "ruchyruchy",
  "rustyline",
+ "semver",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -2405,9 +2406,9 @@ dependencies = [
 
 [[package]]
 name = "ruchyruchy"
-version = "1.9.1"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6117dce6ab1734a88a2190c3dffdf93cfa0dc2253df94ae99cd8f347094d5e89"
+checksum = "0071bbd809f1e8d296586e698eea6f4d6d8f315a795a6fab3696bf1248484e66"
 dependencies = [
  "chrono",
  "serde",
