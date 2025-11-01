@@ -137,22 +137,47 @@ v3.161.0:  42 errors (62% reduction - enum/format fixes)
 v3.163.0:  13 errors (88% reduction - string handling fixes)
 v3.164.0:  10 errors (91% reduction - Pattern trait fixed!)
 v3.166.0:  10 errors (tested - same 10 errors, no change)
-Next:      ~0 errors (return types, Vec ownership)
+v3.167.0:  63 errors 🛑 CRITICAL REGRESSION! All fixes from v3.161.0-v3.164.0 LOST!
+Next:      ~0 errors (after regression is fixed)
 ```
 
+---
+
+**v3.167.0 Update (2025-11-01) - 🛑 CRITICAL REGRESSION**:
+
+**CATASTROPHIC REGRESSION** ❌:
+- 🛑 **ALL FIXES LOST!** Enum scoping, string handling, Pattern trait ALL BROKEN AGAIN
+- 🛑 **Error count INCREASED 530%** from 10 → 63 errors
+- 🛑 **Rollback to pre-v3.161.0 state** - lost 4 versions of progress
+
+**Error Categories (v3.167.0)**:
+- E0412/E0433: Enum scoping errors (21) - ❌ REGRESSION (was FIXED in v3.161.0!)
+- E0308: Type mismatches (29) - ❌ REGRESSION (was 7 in v3.166.0)
+- E0369: String concatenation (7) - ❌ REGRESSION (was FIXED in v3.163.0!)
+- E0277: Pattern trait bounds (3) - ❌ REGRESSION (was FIXED in v3.164.0!)
+- E0507/E0382: Vec ownership (3) - Same as v3.166.0
+
+**Comparison**:
+```
+v3.166.0: 10 errors (91% progress from baseline)
+v3.167.0: 63 errors (43% progress - LOST 48% of improvements!)
+```
+
+**Impact**: All compilation fixes from v3.161.0, v3.163.0, and v3.164.0 have been reverted. This appears to be an accidental rollback or merge issue.
+
 **Current Impact**:
-- ⚠️ `cargo build` fails (10 errors, down from 111+)
+- ⚠️ `cargo build` fails (63 errors, regressed from 10)
 - ⚠️ `cargo test` cannot run
 - ⚠️ `cargo publish` impossible
-- 📊 **We're 91% of the way there!** Only 10 errors left!
+- 🛑 **CRITICAL**: We went from 91% complete to 43% complete
 
 **Our Response**:
 - ✅ Filed detailed issue immediately (STOP THE LINE)
-- ✅ Tested v3.161.0, v3.163.0, v3.164.0, and v3.166.0 thoroughly
-- ✅ Updated GitHub issue #111 with all version progress
-- ✅ Documented all remaining issues (10 errors, same in v3.166.0)
+- ✅ Tested v3.161.0, v3.163.0, v3.164.0, v3.166.0, and v3.167.0 thoroughly
+- ✅ Updated GitHub issue #111 with all version progress + URGENT regression report
+- ✅ Documented regression comprehensively
 - ✅ Transparent about code vs tooling quality
-- ⏳ Awaiting final 2 categories of fixes (return types, Vec ownership)
+- ⏳ Awaiting regression fix (restore v3.161.0-v3.164.0 fixes)
 
 ---
 
